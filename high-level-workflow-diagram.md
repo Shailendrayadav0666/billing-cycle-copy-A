@@ -21,7 +21,9 @@ flowchart TD
 
     STORIES --> DESIGN["<div style='text-align:left'><b>Architecture</b> (Architect)<br/>- AIRE decides which design stages this Epic needs, and only the selected stages run<br/>- AIRE produces <b>application-design.md</b>, <b>functional-design.md</b>, <b>nfr.md</b>, <b>infrastructure-design.md</b><br/>- <b>The Human reviewer approves</b> each design document<br/>- AIRE then produces <b>architecture.md</b><br/>- AIRE creates the Epic's end-to-end scenarios in <b>behavior.feature</b><br/>- AIRE generates <b>architecture-rubric.json</b> and <b>security-rubric.json</b>, and builds the <b>CI/CD evaluation pipeline</b></div>"]
 
-    DESIGN --> SPECS["<div style='text-align:left'><b>Behaviour Specs and Test Plans</b> (before any code)<br/>- For <b>every</b> story, AIRE writes the Gherkin contract <b>spec/behavior/story-N.M.feature</b> from its acceptance criteria<br/>- For <b>every</b> story, AIRE writes the manual test plan in <b>spec/test-plans/</b><br/>- Every acceptance criterion must have at least one scenario and one test case<br/>- <b>The Human reviewer approves</b> the whole set in one pass<br/>- The Verification Engineer can review the test plans before a line of code exists</div>"]
+    DESIGN --> UIUX{"<div style='text-align:left'><b>UI/UX Mockups</b> (optional, chosen during Requirements)<br/>- AIRE builds <b>HTML mockups</b> of every screen and opens them in the browser<br/>- <b>The Human reviewer requests changes</b> until the mockups are approved<br/>- If designs already exist in <b>spec/context-project/new-references/</b>, AIRE reads those instead<br/>- Code generation follows the approved mockups or provided designs</div>"}
+    UIUX -->|"Request Changes"| UIUX
+    UIUX -->|"Approved, designs provided, or skipped"| SPECS["<div style='text-align:left'><b>Behaviour Specs and Test Plans</b> (before any code)<br/>- For <b>every</b> story, AIRE writes the Gherkin contract <b>spec/behavior/story-N.M.feature</b> from its acceptance criteria<br/>- For <b>every</b> story, AIRE writes the manual test plan in <b>spec/test-plans/</b><br/>- Every acceptance criterion must have at least one scenario and one test case<br/>- <b>The Human reviewer approves</b> the whole set in one pass<br/>- The Verification Engineer can review the test plans before a line of code exists</div>"]
 
     SPECS --> HANDOFF["<div style='text-align:left'><b>Human gate before code generation</b></div>"]
 
@@ -52,7 +54,7 @@ flowchart TD
     class INTENT intent
     class START,INTAKE,CONTEXT source
     class REQUIREMENTS,STORIES planning
-    class DESIGN,SPECS design
+    class DESIGN,UIUX,SPECS design
     class HANDOFF approval
     class DELIVERY,STORY_PR delivery
     class PR_REVIEW assurance

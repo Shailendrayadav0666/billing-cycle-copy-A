@@ -116,9 +116,12 @@ except Exception as e:
     print("VIOL eval.json does not parse: %s" % e); sys.exit(0)
 g = d.get("gates") or {}
 req = ["D1_lint","D2_types","D3_sast","D4_deps","D5_licenses","D6_complexity","D7_secrets",
-       "unitCoverage","behaviorB1","behaviorB2","behaviorB3","apiContract","playwright",
-       "playwrightRegression","regression","J1_architecture","J2_security"]
+       "unitCoverage","behaviorB1","behaviorB2","behaviorB3","apiContract",
+       "regression","J1_architecture","J2_security"]
 if change: req.append("testImpact")
+for gid in ("playwright", "playwrightRegression"):
+    if gid in g:
+        print("VIOL eval.json carries a %s gate — implement workflows run no Playwright automation" % gid)
 never_na = {"unitCoverage","behaviorB1","regression","J2_security"}
 bad = re.compile(r"\byet\b|todo|not wired|not bootstrapped|not implemented|pending|future|time.?box|not run|"
                  r"this (pass|session|run)|follow.?up|defer|no tool configured|not installed|not available|"
@@ -148,8 +151,9 @@ if str(d.get("verdict", "")).strip() != "PASS":
 const fs = require("fs"); const [path, changeArg] = process.argv.slice(1);
 let d; try { d = JSON.parse(fs.readFileSync(path, "utf8")); } catch (e) { console.log("VIOL eval.json does not parse: " + e.message); process.exit(0); }
 const g = d.gates || {};
-const req = ["D1_lint","D2_types","D3_sast","D4_deps","D5_licenses","D6_complexity","D7_secrets","unitCoverage","behaviorB1","behaviorB2","behaviorB3","apiContract","playwright","playwrightRegression","regression","J1_architecture","J2_security"];
+const req = ["D1_lint","D2_types","D3_sast","D4_deps","D5_licenses","D6_complexity","D7_secrets","unitCoverage","behaviorB1","behaviorB2","behaviorB3","apiContract","regression","J1_architecture","J2_security"];
 if (changeArg === "1") req.push("testImpact");
+for (const id of ["playwright", "playwrightRegression"]) if (id in g) console.log("VIOL eval.json carries a " + id + " gate — implement workflows run no Playwright automation");
 const neverNA = new Set(["unitCoverage","behaviorB1","regression","J2_security"]);
 const bad = /\byet\b|todo|not wired|not bootstrapped|not implemented|pending|future|time.?box|not run|this (pass|session|run)|follow.?up|defer|no tool configured|not installed|not available|later|scope|keep (the )?session|manual check|by inspection|by hand|skipp?/i;
 for (const id of req) {
@@ -203,15 +207,8 @@ case "$(status_of apiContract)" in
   PASS) A="reports/api-contract-test-evidence/$KEY"; need "$A/api-contract-test-run.log"; need "$A/evidence-manifest.md" ;;
   N/A)  absent_dir "reports/api-contract-test-evidence/$KEY" ;;
 esac
-P="reports/playwright-test-evidence/$KEY"
-case "$(status_of playwright)" in
-  PASS) need "$P/playwright-test-run.log"; need "$P/evidence-manifest.md" ;;
-esac
-case "$(status_of playwrightRegression)" in
-  PASS) need "$P/regression/playwright-baseline-regression.log"; need "$P/regression/playwright-full-regression.log"
-        need "$P/regression/evidence-manifest.md" ;;
-  N/A)  absent_dir "$P/regression" ;;
-esac
+# Implement workflows run no Playwright automation, so a work unit never has Playwright evidence.
+[ -d "reports/playwright-test-evidence/$KEY" ] && add "folder must not exist (implement workflows run no Playwright automation): reports/playwright-test-evidence/$KEY"
 
 E="reports/eval-evidence/$KEY"
 need "$E/eval-summary.md"; need "$E/artifact-check.md"; need "$E/judge/security-score.json"

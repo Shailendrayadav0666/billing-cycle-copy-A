@@ -3,9 +3,8 @@
 **Purpose**: every `dev-implement`, `bug-fix-implement` and `enhancement-implement` run (and, through them,
 `epic-enhance`, `epic-bugfix` and `pr-fix`) must leave the **same complete set of evidence files, in the
 same layout and format**, so reviewers, the Verification Engineer and CI can rely on them. Real runs have
-skipped pieces — a UI story with generated Playwright specs but no `playwright-test-evidence/` folder, a
-later story with no Playwright regression evidence, a static baseline holding one tool's output out of
-seven, a coverage folder without the changed-lines measurement. This file is the single checklist, and
+skipped pieces — a static baseline holding one tool's output out of seven, a coverage folder without the
+changed-lines measurement. This file is the single checklist, and
 **Section 5 is the check that makes skipping impossible**: nothing is committed until every required file
 exists, has its format, and agrees with the others.
 
@@ -44,17 +43,13 @@ reason (e.g. `not the last story — 1.4, 1.5 still open`).
 `api-contract-test-run.log` · `api-contract-test-report.json` (or JUnit XML / trx) · `evidence-manifest.md`.
 The tests themselves live in **`tests/api/`** (Section 1.3).
 
-### E4 — Playwright UI automation — `reports/playwright-test-evidence/<key>/` — when the plan has a Frontend Components Generation step
+### E4 / E5 — retired: no Playwright evidence from an implement run
 
-`playwright-test-run.log` · `playwright-test-report.json` · `evidence-manifest.md` — plus, outside
-`reports/`: the generated specs in `tests/e2e/<slug>/`, the Planner's plan in
-`spec/playwright-specs/<slug>.md`, and `spec/test-plans/<TICKET-ID>-<title>/automation-summary.md`.
-
-### E5 — Playwright E2E regression — `reports/playwright-test-evidence/<key>/regression/` — whenever `tests/e2e/` held at least one spec at baseline
-
-`playwright-baseline-regression.log` · `playwright-baseline-report.json` · `playwright-full-regression.log` ·
-`playwright-regression-report.json` · `evidence-manifest.md`. 🔴 This runs for **every** unit, UI or not,
-once any earlier unit has shipped a spec — a backend story that follows a UI story must still produce it.
+🔴 The implement workflows run **no** Playwright automation, so a work unit never has a
+`reports/playwright-test-evidence/<key>/` folder, never writes `tests/e2e/**` or `spec/playwright-specs/**`,
+and its `eval.json` carries no `playwright` / `playwrightRegression` gate. (The ids E4 and E5 are kept
+unused so E6–E11 keep their numbers.) Browser specs and their evidence come only from the Verification
+Engineer's standalone `/playwright-implement` run on the integration branch.
 
 ### E6 — Evals — `reports/eval-evidence/<key>/` — **always**
 
@@ -88,8 +83,7 @@ full-repository `code-security-review` skill.
 
 🔴 **A gate that is `N/A` creates no evidence folder and no empty files.** Its `N/A` status and reason live
 in `eval.json` (`gates.<id>.status = "N/A"`, `reason`) and its `eval-summary.md` row — nowhere else. This
-covers B3 on every unit but the last, API & contract without an API step, Playwright UI without a
-Frontend step, and the regression sweep when `tests/e2e/` holds no spec. Conversely, **a gate that ran
+covers B3 on every unit but the last and API & contract without an API step. Conversely, **a gate that ran
 always has its complete folder** — a PASS without its manifest is not a PASS.
 
 ### 1.2 Applicability is decided once, and the evidence must match it
@@ -98,8 +92,6 @@ always has its complete folder** — a PASS without its manifest is not a PASS.
 |---|---|---|
 | B3 | this unit is the last of the cycle (every other unit's PR merged, live check) | `gh pr view` per unit |
 | API & contract | the plan has an **API Layer Generation** step | the code-generation plan |
-| Playwright UI | the plan has a **Frontend Components Generation** step | the code-generation plan |
-| Playwright regression | `tests/e2e/` holds ≥1 spec at baseline | the baseline run |
 
 A gate is never `N/A` because a tool is not installed — the tool is installed (Section 5 of
 `common/self-heal-limit-guidance.md` covers the case it truly cannot be).
@@ -111,13 +103,13 @@ A gate is never `N/A` because a tool is not installed — the tool is installed 
 | Unit | `tests/unit/<mirror-of-src>/` |
 | API & contract | `tests/api/` (never `tests/unit/`, never a per-story folder such as `tests/api-contract/<key>/`) |
 | Gherkin step definitions / support | `tests/behavior/steps/` · `tests/behavior/support/` |
-| Playwright | `tests/e2e/seed.spec.ts` (shared) · `tests/e2e/<slug>/*.spec.ts` — written only by the `playwright-implement` subagents |
+| Playwright | never written by an implement run — `tests/e2e/**` comes only from the standalone `/playwright-implement` |
 
 ---
 
 ## 2. `evidence-manifest.md` — one format for every evidence folder
 
-Every `evidence-manifest.md` (E1, each E2 tier, E3, E4, E5, `static/`) uses this skeleton; only the
+Every `evidence-manifest.md` (E1, each E2 tier, E3, `static/`) uses this skeleton; only the
 **Result** section is gate-specific.
 
 ```markdown
@@ -158,8 +150,6 @@ result, or "None">
 | E1 unit + coverage | Tests passed (X/X) · Changed executable lines covered (x/y, %) · Changed branches covered (x/y, %) · Threshold (%) · Whole-file coverage (for transparency, not the gate metric) · Baseline pass/fail · Post-change pass/fail · New failures (each with what broke and how it was fixed) · Test placement verdict |
 | E2 behavioural tier | Tier · Feature files in scope · Scenarios passed (X/X) · `@AC` tags executed (X/X) · Containerised (yes/no + reason) · Image ref + digest |
 | E3 API & contract | one row per endpoint + method: Functional · Status codes · Auth 401/403 · Error shape · Request validation · Response schema — each `Pass` or `N/A — reason` |
-| E4 Playwright UI | Manual TC → generated spec → result · Headed (yes) · `test.fixme()` count (must be 0) |
-| E5 Playwright regression | Baseline pass/fail · Post-change pass/fail · New failures (spec + what broke + fix) · Headed (no — bulk regression sweep) |
 | `static/` | one row per D-gate: tool · baseline findings · post-change findings · NEW findings on changed files · threshold · status (`N/A — reason` where it applies) |
 
 ### 2.2 `coverage/changed-lines-coverage.json`
@@ -194,7 +184,7 @@ against, and the verdict. Never skipped because the script is missing.
 
 | Artifact | Format source |
 |---|---|
-| `eval.json` | `common/eval-framework.md` Section 6.1 — every gate id present (`D1_lint`, `D2_types`, `D3_sast`, `D4_deps`, `D5_licenses`, `D6_complexity`, `D7_secrets` — the same ids as `ci.gates` — `unitCoverage`, `behaviorB1`, `behaviorB2`, `behaviorB3`, `apiContract`, `playwright`, `playwrightRegression`, `regression`, `J1_architecture`, `J2_security`, plus `testImpact` for change and bugfix stories), each exactly one of `PASS` / `FAIL` / `ERROR` / `N/A` (+ `reason` for N/A), `selfHealing`, and a `verdict` that is `PASS` only if every gate is `PASS` or `N/A` |
+| `eval.json` | `common/eval-framework.md` Section 6.1 — every gate id present (`D1_lint`, `D2_types`, `D3_sast`, `D4_deps`, `D5_licenses`, `D6_complexity`, `D7_secrets` — the same ids as `ci.gates` — `unitCoverage`, `behaviorB1`, `behaviorB2`, `behaviorB3`, `apiContract`, `regression`, `J1_architecture`, `J2_security`, plus `testImpact` for change and bugfix stories — and never a `playwright` or `playwrightRegression` gate), each exactly one of `PASS` / `FAIL` / `ERROR` / `N/A` (+ `reason` for N/A), `selfHealing`, and a `verdict` that is `PASS` only if every gate is `PASS` or `N/A` |
 | `eval-summary.md` | `common/eval-framework.md` Section 6.2 — the fixed single table, one row per gate, verdict line, self-healing line |
 | Code review report | `implementation/code-review.md` "Code Review Report Template" |
 | Security review report | `agents/code-security-review-agent.md` "Report Structure" — scoped to the diff |
@@ -211,11 +201,9 @@ against, and the verdict. Never skipped because the script is missing.
    `eval-summary.md`, and every figure later quoted in the PR body or tracker comment.
 4. The latest code-review report names the security report of the **same version**
    (`<key>-security-review-v<X>.md`), and its J1 / J2 values equal `judge/*.json` and `eval.json`.
-5. **Folder ⇔ ran**: `b3/`, E3, E4 and E5 exist **if and only if** their gate is not `N/A`.
+5. **Folder ⇔ ran**: `b3/` and E3 exist **if and only if** their gate is not `N/A`; `reports/playwright-test-evidence/<key>/` never exists.
 6. **Applicability ⇔ plan** (Section 1.2): an API Layer Generation step in the plan ⇒ `apiContract` is not
-   `N/A`; a Frontend Components Generation step ⇒ `playwright` is not `N/A` and `tests/e2e/<slug>/` exists;
-   specs in `tests/e2e/` at baseline ⇒ `playwrightRegression` is not `N/A`; last unit ⇒ `behaviorB3` is not
-   `N/A`.
+   `N/A`; last unit ⇒ `behaviorB3` is not `N/A`.
 7. `static/baseline/` holds an output for every D-gate that has one in `static/`.
 
 ---
@@ -237,7 +225,7 @@ Runs **after the review verdict is clean and before manifest reconciliation / th
    - the underlying output exists (a manifest, `eval-summary.md`, `changed-lines-coverage.json`, a
      mis-named security report) → write, compute or reformat it **from this run's real outputs**;
    - the underlying output does not exist (no `unit-test-run.log`, no coverage report, an incomplete
-     static baseline, no Playwright report, no regression sweep) → that gate never produced its evidence,
+     static baseline, no regression sweep) → that gate never produced its evidence,
      so **re-run that gate's step** (its own loop, counters continuing). An incomplete static baseline is
      recaptured at the merge-base in a scratch worktree, as `workflows/pr-fix.md` Step 8 describes;
    - 🔴 never hand-write a result, a log or a figure.
@@ -267,8 +255,7 @@ every Section 2.5.2 reason are not outcomes — they mean the gate still has to 
 | `unitCoverage`, `behaviorB1`, `regression`, `J2_security` | never |
 | `behaviorB2` | only when the repo holds no other feature file |
 | `behaviorB3` | when this is not the last work unit |
-| `apiContract` / `playwright` | when the plan has no API Layer / Frontend Components Generation step |
-| `playwrightRegression` | when `tests/e2e/` held no spec at baseline |
+| `apiContract` | when the plan has no API Layer Generation step |
 | `J1_architecture` | when no architecture rubric is derivable (`common/eval-framework.md` Section 3) |
 | `testImpact` | never, on change and bugfix stories |
 
@@ -290,8 +277,9 @@ A deterministic script, so the ledger is enforced by a check the run cannot talk
   The hook runs the same check on the commit itself, on that branch only.
 - **What it refuses**: a missing `eval.json` gate; a status other than `PASS` or `N/A`; an `N/A` with no
   reason, a forbidden reason, or on a gate that can never be `N/A`; a verdict other than `PASS`; any
-  required E1/E2/E6/E7/E8/E10/E11 file missing, empty or not staged; E3/E4/E5 files missing when their gate
-  passed; a folder present for an `N/A` gate; fewer `static/baseline/` outputs than D-gates that ran; a
+  required E1/E2/E6/E7/E8/E10/E11 file missing, empty or not staged; E3 files missing when its gate
+  passed; a folder present for an `N/A` gate; a `playwright` / `playwrightRegression` gate in `eval.json`
+  or a `reports/playwright-test-evidence/<key>/` folder (implement runs have no Playwright); fewer `static/baseline/` outputs than D-gates that ran; a
   unit `state.md` with no `## Claim` block, or a non-LOCAL claim whose `Tracker:` line is not `verified` or
   whose `Assignee:` line is neither `verified` nor `unresolved`.
 - 🔴 **Never bypass it** — no `git commit --no-verify`, no editing `eval.json` to satisfy it, no placeholder

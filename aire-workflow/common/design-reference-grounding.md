@@ -28,7 +28,11 @@ This guardrail is **purely reactive and silent**: it fires only when the user *v
 | 2 | <abs path to spec>.docx | Spec document | Widget + queue detail |  | Requirements Analysis |
 ```
 
-- **Type**: `UI prototype` / `mockup or screenshot` / `spec document` / `data reference` / `reference implementation`
+- **Type**: `UI prototype` / `UI prototype (AIRE-generated)` / `mockup or screenshot` / `spec document` / `data reference` / `reference implementation`
+- `UI prototype (AIRE-generated)` rows are written by the UI/UX Mockups stage
+  (`extensions/design/ui-ux/ui-ux-mockups.md` Step 6) once the user approves the mockups. They are
+  grounded exactly like a user-provided reference (DR-5), with one precedence difference noted in
+  DR-8.
 - **Governs**: which requirements, stories, or components this reference is authoritative for — be specific; `all` is acceptable only when the reference genuinely covers the whole epic
 - **Read?**: `` only once **DR-2** is satisfied. `` is a **blocking** state, never a resting state.
 
@@ -160,6 +164,11 @@ The user retains full control at the stage's own existing approval point — the
 1. A **recorded reconciliation** — a deliberate, traceable decision
 2. The **design reference** — on any point no artifact has reconciled
 3. The **framework artifact's generic wording** — where no reference covers the point at all
+
+**AIRE-generated mockups** are built from the approved acceptance criteria, so for them the criteria
+decide behaviour and scope, and the mockup decides only the layout, wording and visual detail the
+criteria leave open. A difference in behaviour between such a mockup and an AC is resolved in favour of
+the AC. It is never treated as the DR-6 "reference wins" case.
 
 **Never** let a later stage silently reverse an earlier deliberate decision, and **never** let a generic AC restatement suppress a design detail nobody ever considered. DR-8 separates those two cases; everything else in this file assumes it has been applied.
 

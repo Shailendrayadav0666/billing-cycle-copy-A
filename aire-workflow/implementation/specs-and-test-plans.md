@@ -19,6 +19,19 @@ when enabled), **before** the design commit, the smoke test and the Development 
 
 ---
 
+## 0. Before Part A — UI/UX Mockups (only when enabled)
+
+If `## Extension Configuration` records `UI/UX Mockups` = Yes, run
+`extensions/design/ui-ux/ui-ux-mockups.md` in full **now**, before writing any `.feature` file or test
+plan, and continue with Part A only after that stage has returned. In `generate` mode, that means after
+the user has approved the mockups. A missing row, or `No`, means skip this section silently. Log the skip.
+
+This order lets the behaviour specs and test plans use the screen names, labels and messages in the
+approved mockups. The mockups under `spec/plans/ui-ux/` ride the same design commit as everything else
+this file produces.
+
+---
+
 ## 1. Why the contract is written here, not inside the implement workflows
 
 The `.feature` file is the **contract the code is measured against**, and the manual test plan is
@@ -63,7 +76,9 @@ Section 2 — that file is the authority for content, tagging and style; nothing
 
 **Inputs**: the tracker item and `spec/plans/stories.md` for acceptance criteria,
 `spec/plans/requirements.md` for the `Covers` REQ-IDs, `spec/plans/architecture.md` for design
-constraints, and the approved design artifacts under `spec/plans/`.
+constraints, and the approved design artifacts under `spec/plans/`. When Section 0 ran, also use the
+approved mockups (`spec/plans/ui-ux-design.md` and the screen files) for screen names, labels and
+messages.
 
 ---
 
@@ -249,6 +264,8 @@ presenting) and the user's complete raw response (after receiving).
 
 - 🔴 **Every work unit gets BOTH artifacts, before any code** — the `.feature` contract and the manual
   test plan. A unit with acceptance criteria is never `N/A` for either.
+- 🔴 **UI/UX Mockups run first when enabled** (Section 0). Part A never starts while generated mockups
+  are still awaiting approval.
 - 🔴 **ONE approval for the whole set**, in the standardized 2-option format. Never a 3-option menu,
   never per-unit approvals, never silent completion.
 - 🔴 **Part B INVOKES the `ve-implement` skill in WORKFLOW MODE** — never re-implemented inline, and

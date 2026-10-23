@@ -382,25 +382,26 @@ moment one of them changes.
 
 ### 3.0f 🔴 Playwright E2E — resolving the start command + readiness URL, and CI's trust-gate role
 
-🔴 **CI never originates Playwright coverage — it only re-executes what the local Playwright UI
-Automation Gate (`implementation/code-generation.md` Step 11d) already generated and ran.** This
-subsection resolves the two facts CI needs to reproduce that run headless, and defines what "trust
-gate" means operationally.
+🔴 **CI never originates Playwright coverage — it only re-executes specs the Verification Engineer's
+standalone `/playwright-implement` already generated and ran.** No implement workflow (`dev-implement`,
+`bug-fix-implement`, `enhancement-implement`) runs Playwright, so none of them writes `ci.playwright`.
+This subsection resolves the two facts CI needs to reproduce that run headless, and defines what
+"trust gate" means operationally.
 
-**Resolution — the first work unit that runs the Playwright gate for real writes `ci.playwright` into
-`tests/.evals/config.json`** (`common/eval-framework.md` Section 1), exactly like a manifest fragment
-resolves a new tool: never guessed, always read from something the repo demonstrably has.
+**Resolution — `ci.playwright` in `tests/.evals/config.json` is set by hand** (`common/eval-framework.md`
+Section 1), on the integration branch, only when the team wants CI to re-run the standalone specs:
+never guessed, always read from something the repo demonstrably has.
 
 | Field | Resolved from |
 |---|---|
-| `enabled` | `true` the first time a work unit's plan includes a Frontend Components Generation step and the Playwright gate actually ran (not merely planned) |
+| `enabled` | `true` only once standalone `/playwright-implement` specs exist under `tests/e2e/` and the team chooses to have CI re-run them |
 | `startCommand` | The project's OWN start script (`package.json` `"dev"`/`"start"`, a documented `Makefile` target, or the direct framework invocation) — resolved the same way as every other command in this framework: repo script → direct invocation → never invented |
-| `readinessUrl` | The URL/port the story's System Under Test block already names (or the app's documented default) — the same value the local gate polled before running tests |
+| `readinessUrl` | The URL/port the story's System Under Test block already names (or the app's documented default) — the same value the standalone run polled before running tests |
 | `testCommand` | Defaults to `npx playwright test tests/e2e/`; a project with a non-default `testDir` or reporter convention overrides it here, once |
-| `backendStartCommand` / `backendReadinessUrl` | 🔴 **Playwright drives a real browser against a real running app — there is nothing to click or assert on otherwise, so whatever the frontend calls must actually be reachable.** These stay `null` when `startCommand` alone already brings up everything the tests need (a monolith serving both, `docker-compose up`, a monorepo dev task like `turbo run dev`/`nx run-many --target=serve`). Resolve them, the same never-invented way as every other command here, **only** when the local gate genuinely needed frontend and backend as two independent processes with no such combined wrapper. `backendReadinessUrl` is mandatory whenever `backendStartCommand` is set — an unresolved readiness check for a real second process is a manifest defect, not something to leave implicit |
+| `backendStartCommand` / `backendReadinessUrl` | 🔴 **Playwright drives a real browser against a real running app — there is nothing to click or assert on otherwise, so whatever the frontend calls must actually be reachable.** These stay `null` when `startCommand` alone already brings up everything the tests need (a monolith serving both, `docker-compose up`, a monorepo dev task like `turbo run dev`/`nx run-many --target=serve`). Resolve them, the same never-invented way as every other command here, **only** when the standalone run genuinely needed frontend and backend as two independent processes with no such combined wrapper. `backendReadinessUrl` is mandatory whenever `backendStartCommand` is set — an unresolved readiness check for a real second process is a manifest defect, not something to leave implicit |
 
 🔴 **CREATE IF MISSING, NEVER REGENERATE** (`common/directory-structure.md` Artifact Ownership) — once
-`ci.playwright` is resolved by a work unit, every later work unit and CI both read it as-is; a project
+`ci.playwright` is resolved, CI reads it as-is; a project
 with no UI at all simply never sets `enabled: true`, and the CI step below then reports `N/A` — never a
 guessed command.
 
@@ -411,10 +412,10 @@ assume that API is already reachable), then starts the app in the background usi
 `startCommand`, waits on the SAME `readinessUrl`, runs the SAME `testCommand`, and tears BOTH
 processes down — the same specs and the same assertions that already ran and passed locally. 🔴 **The
 one and only difference is the display mode**:
-the local gate runs `--headed` (it is the developer's own machine, and watching the browser is the
-point), while CI runs headless **because a GitHub runner has no display** — a property of the
+the standalone run is `--headed` (it is the Verification Engineer's own machine, and watching the
+browser is the point), while CI runs headless **because a GitHub runner has no display** — a property of the
 environment, never a policy this framework applies locally. 🔴 **CI is NEVER where a Playwright scenario is written, planned,
-or healed** — Planner/Generator/Healer only ever run inside the local gate (Step 11d). A CI failure on
+or healed** — Planner/Generator/Healer only ever run inside the standalone `/playwright-implement`. A CI failure on
 a scenario that passed locally is therefore always a **provisioning/manifest defect** (a stale
 `startCommand`, a wrong `readinessUrl`, browsers not installed) — triaged and repaired exactly like any
 other CI Preflight/Attestation mismatch (`common/ci-pipeline-generation.md` Section 6.6), never a
@@ -665,8 +666,8 @@ job: behavior-gherkin        (needs: setup, if: needs.setup.outputs.has_behavior
                                     file) · B3 (whole epic) only on a PR into the base branch
 
 job: playwright-e2e          (needs: setup, if: needs.setup.outputs.has_e2e_tests == 'true')
-  └── Stage 2  Behavioural         Playwright E2E headless — TRUST GATE, re-executes the local
-                                    Step 11d run, never originates it. Gated on THIS story's own
+  └── Stage 2  Behavioural         Playwright E2E headless — TRUST GATE, re-executes standalone
+                                    /playwright-implement specs, never originates them. Gated on THIS story's own
                                     tests/e2e/<key>/ having content — a directory fact, never
                                     ci.playwright.enabled (Section 3.0f still supplies HOW to run it)
 
@@ -1887,8 +1888,9 @@ repo"** — a later story's specs must never make an earlier or unrelated story'
 This is also why `playwright-e2e`'s condition is `has_e2e_tests` alone, never `ci.playwright.enabled`
 (Section 3.0f): whether Playwright runs is decided by the directory-structure fact that this story
 generated specs, not by a separate manifest flag to reconcile against it. `ci.playwright.enabled`
-(plus `startCommand`/`readinessUrl`/`testCommand`) stays exactly what the local gate and CI's own
-trust-gate step read for **how** to run it once the directory fact says it **should**.
+(plus `startCommand`/`readinessUrl`/`testCommand`) stays exactly what the standalone run and CI's own
+trust-gate step read for **how** to run it once the directory fact says it **should**. 🔴 Implement
+workflows never write `tests/e2e/**`, so on a work-unit PR this job normally reports `N/A`.
 
 🔴 **A skipped job is an EARNED N/A, never a failure and never a silent pass** — the same rule the
 framework already enforces at the script level (`common/eval-framework.md` Section 2.4.2), now applied

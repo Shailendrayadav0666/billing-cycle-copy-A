@@ -116,15 +116,12 @@ did not approve, or change the status of anything the ve rejected.
 > status — and only on the ve's explicit approval, after the ve has actually tested the work.
 > Option C is the one place this skill edits those `/ve-implement` artifacts directly, on the ve's request.
 
-> **Relationship to `/playwright-implement`** (mandatory extension): frontend work units already get
-> their Playwright tests inside the implement workflows. For any other story whose dev PR has merged
-> (its test plan is already on the branch from the STOP checkpoint), `/playwright-implement <story>` can
-> turn the manual steps into executable Playwright automation — run it in a separate terminal, since it's a
-> longer sequential flow, while this skill keeps working the Approve/Reject queue for other stories.
-> It runs **directly on the same integration branch** — no branch of its own, no PR — and pushes
-> straight to that branch after its own confirm-first push gate. This skill's Step 3 surfaces
-> automation status when the extension is enabled; neither skill changes story or tracker status —
-> that remains this skill's Option B alone.
+> **Relationship to Playwright automation** (optional, standalone only): the implement workflows run
+> **no** Playwright automation, so no work unit's `eval.json` carries a Playwright result. Browser
+> automation exists only when the Verification Engineer has run the standalone `/playwright-implement`
+> for an item, which writes `spec/test-plans/<TICKET-ID>-<title>/automation-summary.md` on the
+> integration branch. This skill's Step 3 **only reports what that file records** — it never runs
+> automation itself. Neither changes story or tracker status — that remains this skill's Option B alone.
 
 **🔴 File-writing boundary:**
 - **Option A**: writes NOTHING.
@@ -238,6 +235,15 @@ value into any row it writes, always as the full resolved row (Step 5). Only Ste
 ve decision about status. LOCAL rows have no external board
 to read from — use the tracker's `Status` column for those.
 
+🔴 **The status column is labelled by where its value came from — never guess the label:**
+- **`Type` is JIRA / ADO / GITHUB** → the header is **`Live status`**, and every value in it MUST come from
+  this run's live fetch. Never fall back silently to the local `Status` column. If the fetch fails for a
+  row, show `<local value> (live fetch failed)` for that row and name the failure under the table. If the
+  integration is unavailable (Step 0 exception), every row shows `(live fetch failed)` and the skipped
+  reads are reported.
+- **`Type` is LOCAL** → the header is **`Status (local tracker)`**. There is no external board.
+- 🔴 Never print `Status (local)` for a non-LOCAL tracker. That label means the live read did not happen.
+
 Classify every row using the live status plus merge state:
 
 **🟩 MERGED — testable now**:
@@ -267,18 +273,15 @@ Section 4). The **Status** column changes only through the ve's answer in Step 4
 listed**. It is not a sign-off candidate, so it does not belong in the output. Do NOT print a
 "still in development", "not started", "already actioned" or "needs attention" table.
 
-**If the Playwright Test Automation extension is enabled** — read `## Extension Configuration` in
-`runtime-artifacts/aire-state.md` per `requirements-analysis.md` Step 5.1's canonical table format
-(`| Extension | Enabled | Decided At |`); find the row where `Extension` is "Playwright Test
-Automation" and check its `Enabled` column for `Yes` (always `Yes` in current projects — the extension is mandatory; the check only guards older state files) — also compute an **Automation** column per
-row: check for `tests/e2e/<story-slug>/*.spec.ts` at the workspace root and/or
-`spec/test-plans/<TICKET-ID>-<title>/automation-summary.md`. If either exists, show  (with the
-pass/fail count from `automation-summary.md` if present); if the row's manual test steps exist but
-automation doesn't yet, show "— not generated (run `/playwright-implement <story>` in a separate
-terminal)"; if manual test steps don't exist yet either, omit the automation suggestion — there's
-nothing for the Planner to scope to until the test plan exists. **If no such row exists, or
-its `Enabled` column is `No`, omit the Automation column entirely** — do not show it as a permanent
-"—".
+**Automation column** — computed per row **from the recorded standalone result, never from a folder
+search**: read `spec/test-plans/<TICKET-ID>-<title>/automation-summary.md` on the pulled branch (the same
+folder the **Manual test steps** column names):
+- **Present** → `standalone run — <the result it records>` (e.g. `standalone run — 13 passed, 1 fixme`).
+- **Absent** → `not run`. Automation is optional; its absence never blocks sign-off.
+🔴 No implement workflow produces this file, and no `eval.json` gate is read for it.
+
+**Merged on** is the date part of `mergedAt` from the same `gh pr view` call used for the MERGED check —
+never a `Recorded`, `End` or commit date. On a bug/enhancement cycle whose PR is still open, show `open`.
 
 **Print exactly ONE table — the sign-off candidates** (merged PR + still short of Ready for
 Testing). This is the whole of Option A's output, and the same table Option B works from:
@@ -290,16 +293,13 @@ Testing). This is the whole of Option A's output, and the same table Option B wo
 
 | # | Story | Tracker ID | Title | PR | Merged on | Manual test steps | Automation | Live status |
 |---|-------|------------|-------|----|-----------|-------------------|------------|-------------|
-| 1 | 1.1 | PROJ-101 | [title] | #12 | [date] | `spec/test-plans/PROJ-101-<title>/`  |  13 passing, 1 fixme | In Development |
-| 2 | 1.2 | PROJ-102 | [title] | #15 | [date] | — not generated (run `/ve-implement 1.2`) | — | In Development |
+| 1 | 1.1 | PROJ-101 | [title] | #12 | [mergedAt date] | `spec/test-plans/PROJ-101-<title>/` | not run | In Development |
+| 2 | 1.2 | PROJ-102 | [title] | #15 | [mergedAt date] | `spec/test-plans/PROJ-102-<title>/` | standalone run — 13 passed | In Development |
 
-(Drop the **Automation** column entirely if the extension is `Disabled`.)
+(On a LOCAL tracker the last column is headed `Status (local tracker)` instead of `Live status`.)
 
 > Merged into `<integration-branch>` — execute the manual test steps in each folder above
 > (generate them with `/ve-implement <story>` where missing). You can run them in a separate terminal.
-> Where manual steps exist but automation doesn't yet, run `/playwright-implement <story>` — also
-> in a separate terminal, since it's a longer sequential run (Planner → your approval → Generator →
-> headed execution → Healer).
 
 ```
 
@@ -319,9 +319,8 @@ sign-off, a rejection is an ve defect call. Both are recorded on the tracker tic
 don't treat manual execution and automation as separate tracks. A `test.fixme()` candidate defect
 from the Healer is real signal a rejection may be warranted, same as a manually-found bug; passing
 automation is corroborating evidence for an approval, not a substitute for having actually tested it.
-If automation hasn't been generated yet for an item (Step 3 showed "not generated"), that's fine —
-the decision can still be made from manual execution alone; automation is not a blocking prerequisite
-for sign-off, just additional evidence when it exists.
+An item showing `not run` — the decision rests on manual execution alone; automation is not a
+blocking prerequisite for sign-off, just additional evidence when it exists.
 
 **One question, covering every merged item:**
 

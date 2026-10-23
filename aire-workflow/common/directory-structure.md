@@ -62,7 +62,9 @@ this specific project** (see `common/ci-pipeline-generation.md`).
 │   │   └── steps/                         #    step definitions — bind each Gherkin clause to src/
 │   │       ├── common_steps.py            #     shared Given/When/Then reused across features
 │   │       └── <work-unit>_steps.py       #     per-work-unit step impls (B1 unit, B2 others, B3 cycle)
-│   ├── e2e/                               #   tests/e2e/ — Playwright, UI projects ONLY (skip if no UI)
+│   ├── e2e/                               #   tests/e2e/ — Playwright, written ONLY by the standalone
+│   │                                     #    /playwright-implement on the integration branch — never by
+│   │                                     #    an implement workflow (skip if no UI)
 │   │   ├── seed.spec.ts                   #    ONE shared seed inside testDir — fixture/data setup
 │   │   │                                 #    run before story specs; NEVER duplicated per story
 │   │   ├── fixtures.ts                    #    shared Playwright fixtures / auth state / helpers
@@ -110,6 +112,9 @@ this specific project** (see `common/ci-pipeline-generation.md`).
 │   │   ├── change-story-<N.M>.md         #     epic-enhance: the ONE change document per change story
 │   │   ├── change-spec-<X.Y>.md          #     epic-enhance: spec-only amendments (no code yet)
 │   │   ├── bugfix-story-<N.M>.md         #     epic-bugfix: the ONE bugfix document per bugfix story
+│   │   ├── ui-ux-design.md               #     UI/UX Mockups (opt-in): screen inventory, decisions, review history
+│   │   ├── ui-ux/                        #     UI/UX Mockups (opt-in): self-contained HTML screens + index.html.
+│   │   │                                 #     Design artifacts, never imported by src/
 │   │   └── delta/<CYCLE-ID>-<slug>/      #     the cycle's RE delta — change record + evidence for
 │   │       └── delta.md                  #     atlas-deep-dive.md. Written by archive-epic (Step 3),
 │   │                                     #     applied + published to Atlas by stitch-delta after merge
@@ -117,7 +122,8 @@ this specific project** (see `common/ci-pipeline-generation.md`).
 │   │   ├── story-generation.md          #   nfr-requirements-generation.md, nfr-design-generation.md, application-design-generation.md,
 │   │   ├── functional-design-generation.md #   infrastructure-design-generation.md,
 │   │   ├── story-N.M-code-generation.md # Bug-generation.md, enhancement-generation.md,
-│   │   └── requirement-verification-questions.md
+│   │   ├── requirement-verification-questions.md
+│   │   └── ui-ux-design-questions.md    #   UI/UX Mockups (opt-in): only the open design questions
 │   ├── behavior/                         #    ONE .feature per work unit — the only per-unit spec
 │   │   ├── story-1.1.feature             #     SPEC (contract), stays in spec/ — NOT evidence
 │   │   ├── story-1.2.feature             #     ALL units written at the STOP CHECKPOINT (Step 1.7),
@@ -192,7 +198,9 @@ this specific project** (see `common/ci-pipeline-generation.md`).
    keeps its code somewhere else, see "Brownfield reconciliation" below — never silently write new
    code into a second location.
 2. **`spec/` is documentation and specification only.** Never a `.ts`, `.py`, `.java` or any other
-   source file. There is **no `aire-docs/` layer** — `spec/` has exactly five subfolders plus
+   source file. The one exception is the UI/UX Mockups stage's `spec/plans/ui-ux/*.html`:
+   self-contained, static design artifacts that application code never imports
+   (`extensions/design/ui-ux/ui-ux-mockups.md`). There is **no `aire-docs/` layer** — `spec/` has exactly five subfolders plus
    `behavior.feature` at its root: **`plans/`** (all planning + design docs as flat files —
    `architecture.md`, `atlas-deep-dive.md` + the flat RE docs from Atlas, `requirements.md`, `stories.md`,
    `personas.md`, `epic-brief.md`, `dependency-graph.yml`, `functional-design.md`, `nfr.md`,
@@ -268,8 +276,7 @@ branch. Nothing is ever pushed to the base branch.**
 | `tests/.evals/behavior/**` (Containerfile, run.sh)  | cycle branch     | **Create it**|
 | `tests/.evals/rubrics/security-rubric.json`         | cycle branch     | **Create it** — cycle-scoped: `archive-epic` archives and removes it at cycle close |
 | `tests/.evals/rubrics/architecture-rubric.json`     | cycle branch     | Derive from `spec/plans/architecture.md` Section 10 — cycle-scoped, archived and removed with `spec/` |
-| `spec/**` (except `playwright-specs/`, below) | cycle branch     | Generate during the cycle                      |
-| `spec/playwright-specs/<story-slug>.md`       | **work-unit branch** | **Create it** — the Playwright Planner's own `planner_save_plan` output, one NEW file per work unit, written ONLY by that unit's own `playwright-implement` run and committed with that unit's code (`implementation/code-generation.md` Step 11d). 🔴 The second of the two work-unit-branch exceptions in this table, for the same reason as `ci-manifest.d/`: a new file under a unit-unique name, never an edit to another unit's file |
+| `spec/**` (including `playwright-specs/`)     | cycle branch     | Generate during the cycle — `spec/playwright-specs/<story-slug>.md` and its `tests/e2e/<story-slug>/` specs are written ONLY by the Verification Engineer's standalone `/playwright-implement`, which pushes directly to the integration branch; no implement workflow ever writes them |
 | `reports/**` (generated evidence)             | work-unit branch | Written during code generation / gate runs     |
 | `runtime-artifacts/{audit.md,aire-state.md}`  | cycle branch     | Created by Workspace Detection at cycle start  |
 | `src/**`, `tests/**`                        | work-unit branch | Generate during code generation                |
@@ -289,22 +296,21 @@ the ONE exception to "reports/eval-evidence/ is tracked" (Section 5.3 of `common
 `auto-fix-agent.*`'s `git add -A` must never be allowed to stage it, which is exactly what this
 `.gitignore` entry prevents.
 
-🔴 **`tests/.evals/ci-manifest.d/<work-unit-key>.json` and `spec/playwright-specs/<story-slug>.md` are
-the ONLY two rows in this table not written on the cycle branch** — both are **append-a-new-file**
-territory, written on the **work-unit branch** by the story, bug, or enhancement that produced them.
+🔴 **`tests/.evals/ci-manifest.d/<work-unit-key>.json` is the ONLY row in this table under
+`tests/.evals/` or `spec/` not written on the cycle branch** — it is **append-a-new-file** territory,
+written on the **work-unit branch** by the story, bug, or enhancement that produced it.
 This is what keeps two parallel `dev-implement` sessions (Step 1.75) conflict-free: neither
-`tests/.evals/config.json`, nor another unit's manifest fragment, nor another unit's Planner plan is
-ever touched by a different work unit. Section
-2.1.1's "present → leave it completely alone" rule stays exactly as written for the REST of
-`tests/.evals/`, and the cycle-branch rule stays exactly as written for the rest of `spec/` — these two
-are the narrow exceptions, and only because a new file with a unique name is being added, never an
+`tests/.evals/config.json` nor another unit's manifest fragment is ever touched by a different work
+unit. Section 2.1.1's "present → leave it completely alone" rule stays exactly as written for the
+REST of `tests/.evals/`, and the cycle-branch rule stays exactly as written for all of `spec/` — this
+is the narrow exception, and only because a new file with a unique name is being added, never an
 existing one edited.
 
 🔴 **`spec/playwright-specs/` does NOT weaken the `spec/**` self-repair ban.** `auto-fix-agent.*` is
 still forbidden from touching any path under `spec/**` on a work-unit PR (`common/ci-pipeline-generation.md`
-V33) — the Planner's plan is an Approved spec, and CI re-runs Playwright headless as a trust gate
-without ever re-running the Planner, so nothing in CI has any reason to write it. A work unit writes
-its own plan during its `dev-implement` run; CI self-repair never does.
+V33) — the Planner's plan is an Approved spec, and CI re-runs Playwright headless without ever
+re-running the Planner, so nothing in CI has any reason to write it. Only the Verification Engineer's
+standalone `/playwright-implement` writes it; no implement workflow and no CI self-repair ever does.
 
 ### Why nothing is pushed to base
 

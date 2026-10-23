@@ -70,7 +70,7 @@ newer template introduced. The repo's own file wins.
     "testCommand": "npx playwright test tests/e2e/",
     "backendStartCommand": null,
     "backendReadinessUrl": null,
-    "_comment": "Set true, with startCommand/readinessUrl resolved and testCommand adjusted if needed, the first time a work unit's manifest fragment (implementation/code-generation.md Step 11d) runs the Playwright UI Automation Gate for real. 🔴 testCommand is stored WITHOUT a display flag: the local gate appends --headed (developer's own machine), and CI deliberately appends nothing because a runner has no display. CI's own Playwright step re-executes THIS SAME command set as a trust gate — never the first execution. N/A (not false) when the project genuinely has no UI at all. 🔴 backendStartCommand/backendReadinessUrl stay null when startCommand alone already brings up everything the tests need (a monolith, docker-compose, a monorepo dev task) — set them ONLY when the local gate needed frontend and backend as two genuinely separate processes, resolved the same never-invented way as every other command here."
+    "_comment": "🔴 No implement workflow sets this — dev-implement, bug-fix-implement and enhancement-implement run NO Playwright automation. Set it true by hand (startCommand/readinessUrl resolved from the project's own scripts, never invented) only when the team wants CI to re-execute the specs the Verification Engineer's standalone /playwright-implement run committed under tests/e2e/. 🔴 testCommand is stored WITHOUT a display flag: the standalone skill appends --headed (the Verification Engineer's own machine), and CI deliberately appends nothing because a runner has no display. N/A (not false) when the project genuinely has no UI at all. 🔴 backendStartCommand/backendReadinessUrl stay null when startCommand alone already brings up everything the tests need (a monolith, docker-compose, a monorepo dev task) — set them ONLY when the local gate needed frontend and backend as two genuinely separate processes, resolved the same never-invented way as every other command here."
   },
   "judge": { "model": "<resolved session model id>", "rubricVersion": "<architecture.md version>" },
   "ci": {
@@ -656,8 +656,7 @@ audited amendment. Not to remove the gate.
 | Behavioural **B2** — cumulative (every other feature file) | SH-LOOP-7 | 2 |  |
 | Behavioural **B3** — epic scope (last work unit only) | SH-LOOP-8 | 2 (epic PR) |  |
 | API & contract | SH-LOOP-2 | **local only** |  (when applicable) |
-| Playwright UI automation | SH-LOOP-11 | 2 (trust gate — re-executes, never originates) |  (when applicable) |
-| Playwright E2E regression (every unit, once `tests/e2e/` has specs) | SH-LOOP-13 | **local only** |  |
+| Playwright specs (optional — only when `playwright.enabled` is true) | — (no local gate) | 2 (**CI only** — re-executes the specs the standalone `/playwright-implement` committed) |  (when enabled) |
 | Full regression | SH-LOOP-3 | **local only** |  |
 | Test impact reconciliation (`testImpact` — change and bugfix stories only) | SH-LOOP-15 | **local only** |  |
 | J1 architecture | SH-LOOP-6 | 3 |  (unless `N/A`) |
@@ -665,8 +664,8 @@ audited amendment. Not to remove the gate.
 | Code review findings (Blocker / High) | SH-LOOP-5 | — |  |
 | Artifact completeness (pre-commit check — not an `eval.json` gate) | SH-LOOP-16 | — |  |
 
-🔴 **`apiContract`, `regression`, `playwrightRegression` and `testImpact` are LOCAL-ONLY gates — deliberately,
-and this table is the single place that says so.** (`playwrightRegression` and `testImpact` need a local
+🔴 **`apiContract`, `regression` and `testImpact` are LOCAL-ONLY gates — deliberately,
+and this table is the single place that says so.** (`regression` and `testImpact` need a local
 baseline or the change document, which CI does not have.) They ran at `dev-implement`/`bug-fix-implement`/`enhancement-implement` time and
 nowhere else; no step in `agentic-eval-pipeline.yml`, `run-static-evals.*` or `run-evals.*` implements
 either, and neither appears in the `ci.gates` default. They were previously listed here as CI stage 2
@@ -679,16 +678,14 @@ Two consequences follow, and both are intentional:
   **baseline diff** that separates "this work unit broke it" from "it was already red" — that
   attribution exists only in the local gate.
 
-🔴 **`playwright` is deliberately NOT local-only — it is the one gate CI genuinely re-executes.** The
-local run (`implementation/code-generation.md` Step 11d) is the FIRST execution and the only one that
-remediates — and it runs **`--headed` on the developer's machine**, exactly as the standalone skill
-always has. CI's copy (`common/ci-pipeline-generation.md` Section 4) re-runs the **same specs** as a
-**trust gate** — headless only because a GitHub runner has no display, never as a policy choice —
-proving the same result reproduces in a clean environment, never originating new coverage and never
-re-opening remediation on its own. A CI-only Playwright failure on
-a gate that passed locally is a CI provisioning/manifest defect (missing browsers, wrong start
-command, wrong readiness URL) — triaged exactly like every other local-vs-CI mismatch, never grounds
-to re-litigate the local result.
+🔴 **`playwright` is a CI-only, optional gate — there is NO local Playwright gate.** `dev-implement`,
+`bug-fix-implement` and `enhancement-implement` run no Playwright automation, and neither `playwright`
+nor `playwrightRegression` ever appears in a work unit's local `eval.json`. Browser specs exist only when
+the Verification Engineer runs the standalone `/playwright-implement` skill (`--headed`, on their own
+machine, pushed directly to the integration branch). CI re-executes those specs headless — only
+because a GitHub runner has no display — and only when `playwright.enabled` is true and `playwright` is
+in `ci.gates`. A CI Playwright failure is triaged like any other CI failure; it never re-opens a
+work unit's local gate chain, because that chain never contained Playwright.
 
 #### 2.5.5 🔴 THE STATUS VOCABULARY IS CLOSED — `PASS` · `FAIL` · `ERROR` · `N/A`
 
@@ -765,9 +762,6 @@ gate's failure is never offset by another's success.
     "behaviorB2":    { "status": "PASS", "scenarios": "48/48", "featureFiles": 4 },
     "behaviorB3":    { "status": "N/A",  "reason": "not the last work unit — 2 stories still open (1.4, 1.5)" },
     "apiContract":    { "status": "PASS", "endpoints": 3 },
-    "playwright":     { "status": "PASS", "scenarios": "6/6", "headed": true,
-                        "reExecutedInCI": true },
-    "playwrightRegression": { "status": "PASS", "newFailures": 0, "headed": false },
     "regression":     { "status": "PASS", "newFailures": 0 },
     "J1_architecture":{ "status": "PASS", "score": 0.91, "min": 0.85,
                         "rubricSource": "architecture.md#10",
@@ -825,8 +819,6 @@ match this table exactly.
 | Behavioural B2 (cumulative) | 48/48 scenarios · 4 feature files | 100% | PASS |
 | Behavioural B3 (epic scope) | not the last story — 1.4, 1.5 still open | last unit only | N/A |
 | API & contract | 3/3 endpoints | all applicable | PASS |
-| Playwright UI automation | 6/6 scenarios · re-executed in CI | 100% | PASS |
-| Playwright E2E regression | 0 new failing specs (14 at baseline) | 0 new | PASS |
 | Regression | 0 new failures | 0 | PASS |
 | J1 Architecture | 0.91 | ≥ 0.85 | PASS |
 | J2 Security (OWASP 2025) | 0.92 | ≥ 0.85 | PASS |
@@ -854,11 +846,11 @@ truth; the claim is not.
 
 ## 7. Where this file is invoked
 
-| Flow | Bootstrap + baseline D1–D7 | Static Eval Gate | Playwright UI Automation (SH-LOOP-11, when applicable) | J1 + J2 | Rubric derivation |
-|---|---|---|---|---|---|
-| `dev-implement` | Step 1.5 Item 4.6 | Step 6.6 | Step 6.7 | Section A Auto Code Review (blocking) | STOP CHECKPOINT, from `architecture.md` Section 10 |
-| `bug-fix-implement` | Step 3 Item 5 | Step 7.5 | Step 7.7 | Step 8a (blocking) | Fallback chain Section 3 |
-| `enhancement-implement` | Step 10 | Step 14.5 | Step 14.7 | Step 15a (blocking) | Fallback chain Section 3 |
+| Flow | Bootstrap + baseline D1–D7 | Static Eval Gate | J1 + J2 | Rubric derivation |
+|---|---|---|---|---|
+| `dev-implement` | Step 1.5 Item 4.6 | Step 6.6 | Section A Auto Code Review (blocking) | STOP CHECKPOINT, from `architecture.md` Section 10 |
+| `bug-fix-implement` | Step 3 Item 5 | Step 7.5 | Step 8a (blocking) | Fallback chain Section 3 |
+| `enhancement-implement` | Step 10 | Step 14.5 | Step 15a (blocking) | Fallback chain Section 3 |
 | `code-review` standalone | — | — | Recomputed and reported for the scope reviewed | — |
 | **CI pipeline** | — (runs on a clean checkout) | Stage 1 | Stage 3 (blocking) | — (reads the committed rubric) |
 

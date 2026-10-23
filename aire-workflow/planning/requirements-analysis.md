@@ -137,8 +137,9 @@ skipped, still create the clarifying-questions file containing ONLY the opt-in q
 fold "no requirements questions needed" into "no extension questions needed either." Each opt-in
 question follows whatever default-answer behavior its own `*.opt-in.md` file specifies; absent such
 a note, the tag stays blank per the standard format and an explicit answer is required. (Extensions
-with no `*.opt-in.md` file at all — e.g. Security Baseline, Playwright Test Automation — are always
-mandatory per CLAUDE.md and have no question here at all.)
+with no `*.opt-in.md` file at all — e.g. Security Baseline — are always mandatory per CLAUDE.md and
+have no question here at all. Playwright Test Automation is the one exception: it is standalone only,
+never enforced by a workflow, and has no question here either.)
 
 After receiving answers:
 1. Record each extension's enablement status in `runtime-artifacts/aire-state.md` under `## Extension Configuration`:

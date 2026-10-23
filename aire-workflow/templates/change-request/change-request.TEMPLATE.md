@@ -67,12 +67,12 @@ Story <N.M> — <title> · Covers: <REQ-IDs> · Epic: <Epic-N>
 
 ### 5a. Contracts — per story: scenarios and test cases added / amended / retired
 ### 5b. Test Change Authorization list (CR10)
-| File | Test | Action (`update assertion` / `delete — dead` / `regenerate via playwright-implement`) | Traces to |
+| File | Test | Action (`update assertion` / `delete — dead` / `flag for Verification Engineer — standalone /playwright-implement`) | Traces to |
 
 🔴 A test **not** on this list must pass unmodified. Every other red test is a regression fixed in the
 application code. New tests may always be added.
 
-### 5c. New tests to add (unit / API / step definitions / Playwright via playwright-implement)
+### 5c. New tests to add (unit / API / step definitions — never Playwright)
 
 ## 6. Implementation plan
 

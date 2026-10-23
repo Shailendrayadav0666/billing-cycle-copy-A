@@ -78,7 +78,7 @@ For each affected story, identify the ACs that implement the changed requirement
 | Class | Meaning | What moves with it |
 |---|---|---|
 | **UNCHANGED** | Behaviour stays as approved | Nothing — its tests remain regression guards |
-| **AMENDED** | Behaviour changes | AC text, its `@AC-n` scenario(s), its test case(s), the tests asserting the old behaviour, its Playwright spec(s) if it has UI |
+| **AMENDED** | Behaviour changes | AC text, its `@AC-n` scenario(s), its test case(s), the tests asserting the old behaviour; its Playwright spec(s), if any, flagged for the Verification Engineer's standalone `/playwright-implement` |
 | **SUPERSEDED** | Behaviour is withdrawn | AC marked superseded (never deleted); scenario(s) and test case(s) retired; genuinely dead tests deleted; dead code removed |
 
 Where `stories.md` carries an AC-level `AC-n → REQ-ID` breakdown (encouraged by Rule 2), use it. Where it

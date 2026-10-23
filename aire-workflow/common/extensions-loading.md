@@ -31,7 +31,11 @@ files — NOT the full rule files. Full rule files are loaded on demand, after t
 | Extension | Rule file | Behaviour |
 |---|---|---|
 | **Security Baseline** | `extensions/security/baseline/security-baseline.md` | Loaded at workflow start for EVERY project and enforced as **blocking**. 🔴 NEVER ask whether security rules apply, and ignore any legacy opt-out recorded in `## Extension Configuration`. |
-| **Playwright Test Automation** | `extensions/testing/playwright-automation/playwright-automation.md` | Loaded at workflow start; record `Enabled = Yes` in `## Extension Configuration`. |
+
+**Playwright Test Automation** (`extensions/testing/playwright-automation/playwright-automation.md`) is
+**not** in this table: 🔴 it is **standalone only**. It is NOT loaded at workflow start and NOT enforced
+by any implement workflow — `dev-implement`, `bug-fix-implement` and `enhancement-implement` run no
+Playwright automation. It loads only when the Verification Engineer runs `/playwright-implement`.
 
 ## 4. Enforcement (applies only to loaded/enabled extensions)
 
@@ -51,3 +55,6 @@ Extensions may be conditionally enabled or disabled. The opt-in mechanism lives 
 `planning/requirements-analysis.md`. **Before enforcing any extension at ANY stage**, check its
 `Enabled` status in `runtime-artifacts/aire-state.md` under `## Extension Configuration`. Skip disabled
 extensions and log the skip in `runtime-artifacts/audit.md`. Default to **enforced** when no configuration exists.
+**Exception — UI/UX Mockups** (`extensions/design/ui-ux/`): it is an optional stage, not a set of
+constraints, so a missing `## Extension Configuration` row means **No**. It runs only when the user
+opted in.

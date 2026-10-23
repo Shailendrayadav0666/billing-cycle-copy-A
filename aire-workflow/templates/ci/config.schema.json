@@ -45,7 +45,7 @@
     "playwright": {
       "type": "object",
       "required": ["enabled"],
-      "description": "job-level if: for the playwright-e2e job (CI-SPLIT-JOBS-PLAN.md Section 1) is has_e2e_tests, a directory fact detect-stage-scopes.sh computes — never this enabled flag. enabled/startCommand/readinessUrl/testCommand remain the facts the local gate and CI's own trust-gate step read to know HOW to run Playwright once the directory fact says it SHOULD run. backendStartCommand/backendReadinessUrl are the SAME two facts for a genuinely separate backend process — resolved only when the app is not started by one combined command (a monolith, docker-compose, or a monorepo dev task already covers both under startCommand alone, in which case these stay null).",
+      "description": "job-level if: for the playwright-e2e job (CI-SPLIT-JOBS-PLAN.md Section 1) is has_e2e_tests, a directory fact detect-stage-scopes.sh computes — never this enabled flag. enabled/startCommand/readinessUrl/testCommand (set by hand — no implement workflow runs Playwright) remain the facts the standalone /playwright-implement run and CI's own trust-gate step read to know HOW to run Playwright once the directory fact says it SHOULD run. backendStartCommand/backendReadinessUrl are the SAME two facts for a genuinely separate backend process — resolved only when the app is not started by one combined command (a monolith, docker-compose, or a monorepo dev task already covers both under startCommand alone, in which case these stay null).",
       "properties": {
         "enabled": { "type": "boolean" },
         "startCommand": { "type": ["string", "null"] },

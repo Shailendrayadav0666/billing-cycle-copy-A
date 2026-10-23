@@ -22,7 +22,7 @@ Bugs found in work the epic already built have their own flow: `epic-bugfix`
 | PR | `[ENH]` → base | **`[STORY]` → epic branch** |
 | Cycle | Its own: requirements, design stages, STOP checkpoint, archive | **None** — the epic's state, specs, rubrics and CI are reused |
 | Documents | brief, requirements, impact analysis, design docs, plan | **ONE** — `spec/plans/change-story-<N.M>.md` |
-| Earlier stories' tests | Not its concern | **Found, changed and re-proven** — scenarios, test plans, unit/API tests, step definitions and Playwright specs |
+| Earlier stories' tests | Not its concern | **Found, changed and re-proven** — scenarios, test plans, unit/API tests and step definitions (Playwright specs are never touched — they are flagged for the Verification Engineer's standalone `/playwright-implement`) |
 | Questions | Requirements Q&A, approvals per stage | **None — only the plan approval** |
 
 ---
@@ -34,7 +34,7 @@ code-generation plan file, a separate ve test-plan PR, a separate archive, and e
 question.
 
 **Never cut**: the baselines, every gate of `workflows/dev-implement.md` (unit + coverage, Gherkin
-B1/B2/B3, API & contract, test placement, full regression, D1–D7, Playwright UI + E2E regression, Code
+B1/B2/B3, API & contract, test placement, full regression, D1–D7, test plan verification, Code
 Review with the Security Baseline pass and the blocking J1/J2 judges, auto-remediation, CI preflight and
 attestation), the 3-attempt retry cap, and the rule that a test is never weakened to go green.
 
@@ -63,8 +63,8 @@ question, never offers a menu of options, and never asks for a decision mid-run.
   to In Development.
 - After approval the run is **fully automatic** through to the PR and the handoff. A correction the user
   volunteers is an interrupt: apply it, record it in the document's revision log, continue.
-- The sanctioned **halts** stay (they are not questions): SH-4 retry-limit exhaustion, the Playwright
-  agent-install restart pause, and the Step 4 blocks.
+- The sanctioned **halts** stay (they are not questions): SH-4 retry-limit exhaustion and the Step 4
+  blocks.
 
 ---
 
@@ -73,9 +73,8 @@ question, never offers a menu of options, and never asks for a decision mid-run.
 `workflows/dev-implement.md` Step 1.7 applies to this whole workflow, unchanged: every step runs in the
 session where the keyword was typed; nothing is delegated to a fork, subagent, Workflow-tool run,
 background or remote agent, second session or `claude -p` subprocess; agent procedure files and skills
-execute inline; the Code Review pass is read-only by discipline. The only Agent-tool use is Playwright's
-own Planner/Generator/Healer inside the Playwright UI gate, one call at a time, synchronously. A run
-inside a fork or subagent HALTS at Step 0.
+execute inline; the Code Review pass is read-only by discipline. There is no permitted Agent-tool use.
+A run inside a fork or subagent HALTS at Step 0.
 
 ---
 
@@ -94,9 +93,11 @@ Resolve `aire-workflow/` and load:
   `implementation/remediate.md`
 - When `## CI/CD Configuration` records `Enabled: Yes`: `common/ci-pipeline-generation.md` Sections
   4.0d, 4.0f, 4.0i and 6.6
-- 🔴 The Playwright non-negotiables in `workflows/dev-implement.md` ("MANDATORY: Rule Details
-  Loading") apply unchanged — earlier stories' Playwright specs are changed only by the
-  `playwright-implement` skill's own subagents, never by hand.
+- 🔴 **No Playwright automation** — exactly as `workflows/dev-implement.md` ("MANDATORY: Rule Details
+  Loading"): this workflow never installs Playwright, never runs an E2E sweep, never invokes
+  `playwright-implement` and never edits `tests/e2e/**` or `spec/playwright-specs/**`. An earlier
+  story's Playwright spec that the change invalidates is listed in the document (Section 5b) for the
+  Verification Engineer's standalone `/playwright-implement` run after this PR merges.
 
 ---
 
@@ -160,8 +161,7 @@ that step's message (substituting `epic-enhance`), change nothing.
 ## Step 1 — Preconditions: is there an open epic cycle to change?
 
 0. **▶ Hand-back first**: if the checked-out branch is a change story's branch whose fragment
-   (`runtime-artifacts/stories/story-<N.M>/state.md`) holds a `PAUSED —` record (Playwright agent install —
-   continue at the step it names) or a `HALTED —` record, this invocation is the
+   (`runtime-artifacts/stories/story-<N.M>/state.md`) holds a `HALTED —` record, this invocation is the
    developer handing the work back after a manual fix — the keyword may be bare and the working tree dirty
    by design. Skip the rest of Steps 1–9 and follow `common/self-heal-limit-guidance.md` Section 4, then
    continue from the first code gate (Step 11) or the halted gate. Otherwise continue with item 1.
@@ -234,7 +234,7 @@ No file is "affected" without a recorded reason.
 | Class | Meaning | Artifacts that move |
 |---|---|---|
 | **UNCHANGED** | Behaviour stays as approved | None — its tests are regression guards and must stay green |
-| **AMENDED** | Behaviour changes | AC text, its scenario(s), its test case(s), the tests asserting the old behaviour, its Playwright spec(s) if it has UI |
+| **AMENDED** | Behaviour changes | AC text, its scenario(s), its test case(s), the tests asserting the old behaviour; its Playwright spec(s), if any, are flagged for the Verification Engineer's standalone `/playwright-implement` (never edited here) |
 | **SUPERSEDED** | Behaviour is removed | AC marked superseded (never deleted); scenario(s) and test case(s) retired; tests deleted as genuinely dead; dead code removed |
 
 ### 5.2 Define the change story
@@ -261,7 +261,8 @@ journeys), test plans (the change story's new folder, amended cases in earlier s
 
 The exact tests that may be **modified or deleted** because an AC they assert was AMENDED or
 SUPERSEDED — one row each: `file` + test name + action (`update assertion` / `delete — dead` /
-`regenerate via playwright-implement`) + the AC it traces to. **A test not on this list must pass
+`flag for Verification Engineer — standalone /playwright-implement`) + the AC it traces to. A flagged
+Playwright spec is never edited by this workflow. **A test not on this list must pass
 unmodified** (new tests may always be added).
 
 ### 5.5 Sizing check
@@ -299,7 +300,7 @@ Acceptance criteria:
 ### 5a. Contracts — scenarios and test cases (per story: added / amended / retired)
 ### 5b. Test Change Authorization list
 | File | Test | Action | Traces to |
-### 5c. New tests to add (unit / API / step definitions / Playwright via playwright-implement)
+### 5c. New tests to add (unit / API / step definitions — never Playwright)
 
 ## 6. Implementation plan  (this section IS the code-generation plan — checkboxes marked as work completes)
 - [ ] Step 1 — … (AC-n / REQ-ID)
@@ -370,9 +371,8 @@ the story branch name needs the tracker ID. Nothing is committed here.
 
 Execute `workflows/dev-implement.md` **Step 1.5** for Story <N.M>: the story branch
 `story/<TRACKER-ID>-<N.M>-<kebab-title>` is cut from the refreshed epic branch (its dependency-merge
-check re-confirms every `requires` is merged), then the three baselines are captured **before any edit**
-— full suite (Item 4.5), static D1–D7 with bootstrap (Item 4.6), full Playwright E2E headless
-(Item 4.7). The uncommitted fragment `runtime-artifacts/stories/story-<N.M>/` from Step 8 carries onto the branch, as
+check re-confirms every `requires` is merged), then the two baselines are captured **before any edit**
+— full suite (Item 4.5) and static D1–D7 with bootstrap (Item 4.6). The uncommitted fragment `runtime-artifacts/stories/story-<N.M>/` from Step 8 carries onto the branch, as
 they do in `dev-implement`.
 
 ### 9.2 (reserved — the reproduction proof exists only in `epic-bugfix`)
@@ -411,22 +411,23 @@ they do in `dev-implement`.
 
 ## Step 10 — Build
 
-Execute `workflows/dev-implement.md` from **Step 4.3** (Playwright Readiness — frontend plans only) and
-**Step 4.5** (behaviour-spec verification) through **Part 2 generation**, with these overrides and nothing else changed:
+Execute `workflows/dev-implement.md` from **Step 4.5** (behaviour-spec verification) through **Part 2
+generation**, with these overrides and nothing else changed:
 
 - **Plan**: document Section 6 **is** the code-generation plan (it satisfies `dev-implement` Step 4.1);
   mark its checkboxes as steps complete. No separate plan file.
 - **Generation order**: application change → the authorised test changes from Section 5b (update
   obsolete assertions, delete dead tests, each traced to its AC) → new tests (Section 5c).
-- **Earlier stories' Playwright specs** listed in Section 5b are regenerated by invoking
-  `playwright-implement` in WORKFLOW MODE **for that affected story**, scoped to its amended ACs.
+- **Earlier stories' Playwright specs** flagged in Section 5b are NOT touched — they stay listed in the
+  approved document, which rides this story's PR, for the Verification Engineer's standalone
+  `/playwright-implement` run after the merge.
 
 ## Step 11 — The COMPLETE gate chain
 
-Execute `workflows/dev-implement.md` **Steps 6 through 6.8** for Story <N.M>. Gate semantics with
+Execute `workflows/dev-implement.md` **Steps 6 through 6.7** for Story <N.M>. Gate semantics with
 authorised changes:
 
-- In the full regression (Step 6.5), B2 (Step 6.1) and the Playwright E2E regression (Step 6.8), a test
+- In the full regression (Step 6.5) and B2 (Step 6.1), a test
   green at baseline and red now is a **regression to fix in the application code** — unless it is on the
   Test Change Authorization list, in which case it must already have been updated and must now pass.
 - A red test the analysis missed may join the list **only** if it asserts an AC the document classifies
@@ -547,9 +548,9 @@ Log which variant was shown.
 - 🔴 **ONLY AUTHORISED TESTS CHANGE.** An earlier story's test is modified or deleted only if it is on the
   approved Test Change Authorization list and traces to an AMENDED or SUPERSEDED AC. Every other red test
   is a regression fixed in the code (SH-6).
-- 🔴 **CONTRACTS MOVE TOGETHER.** An amended AC moves its `stories.md` text, scenario, test case, tests and
-  (UI) Playwright spec in the same PR; scenarios and plans are never rewritten to match code, and
-  Playwright specs only through the `playwright-implement` subagents.
+- 🔴 **CONTRACTS MOVE TOGETHER.** An amended AC moves its `stories.md` text, scenario, test case and tests
+  in the same PR; scenarios and plans are never rewritten to match code, and a (UI) Playwright spec is
+  flagged for the Verification Engineer's standalone `/playwright-implement`, never edited here.
 - 🔴 **NEVER CHANGE WORK IN FLIGHT.** A story being built, or with an open PR, blocks the change.
 - 🔴 **NO STATUS DEMOTION, NO MERGING.** Statuses move only as `dev-implement` and `ve-list-work` define;
   the framework never merges a PR.

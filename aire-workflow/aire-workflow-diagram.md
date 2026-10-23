@@ -66,7 +66,9 @@ flowchart TD
 
     %% Design handoff checkpoint
     INFRA --> ARCHDOC["<b>Design handoff checkpoint:</b><br/>The framework asks once: Set up the CI/CD eval pipeline? (yes/no). On yes, it generates the CI pipeline,<br/>guides the User for manual CI setup steps, and waits for user input to proceed.<br/>It writes spec/behavior.feature for epic level gherkin scenarios,<br/>and assembles <b>spec/plans/architecture.md</b> from the approved designs.<br/>It derives the architecture rubric from architecture.md and a security rubric<br/>from the OWASP Top 10. "]
-    ARCHDOC --> SPECSET{"<b>Behaviour specs and test plans</b> (before any code)<br/>For every story: <b>spec/behavior/story-N.M.feature</b>, one scenario<br/>per acceptance criterion including failure paths, and the manual test plan<br/>in <b>spec/test-plans/&lt;ticket-id&gt;-&lt;title&gt;/</b>, written by the ve-implement skill.<br/>Every acceptance criterion needs a scenario and a test case.<br/>The user reviews the whole set once:<br/>Request Changes or Continue to Next Stage."}
+    ARCHDOC --> UIUX{"<b>UI/UX Mockups</b> (only when the user opted in during Requirements Analysis)<br/>Framework Generates: HTML mockups of every screen and open it in the browser<br/>and revise the design until the user approves them.<br/><br/>Code generation is later grounded in the approved mockups."}
+    UIUX -->|"Request Changes"| UIUX
+    UIUX -->|"Approved or not opted in"| SPECSET{"<b>Behaviour specs and test plans</b> (before any code)<br/>For every story: <b>spec/behavior/story-N.M.feature</b>, one scenario<br/>per acceptance criterion including failure paths, and the manual test plan<br/>in <b>spec/test-plans/&lt;ticket-id&gt;-&lt;title&gt;/</b>, written by the ve-implement skill.<br/>Every acceptance criterion needs a scenario and a test case.<br/>The user reviews the whole set once:<br/>Request Changes or Continue to Next Stage."}
     SPECSET -->|"Request Changes"| SPECSET
     SPECSET -->|"Continue to Next Stage"| DESIGN_PUSH["The design documents, contracts, test plans and evaluation files<br/>are committed and pushed on the Epic branch."]
     DESIGN_PUSH --> SMOKE["<b>CI smoke test</b> (only when CI was selected)<br/>A scratch pull request with no changes proves the CI environment works.<br/>It is merged and deleted on success."]
@@ -160,7 +162,7 @@ flowchart TD
     class WD,BRANCH,RA,RA_FOLLOW,RA_GEN,RA_COMMIT,US_GEN,PUSH_TRK,DG,WP planning
     class ATLAS_SYNC,CTX,RA_Q,RA_APPROVE,STORY_CP,SS,COV,BEHV,API_T,REG,STATIC,PW,RDG,PREFLIGHT,MORE checkpoint
     class AD,FD,NFR_R,NFR_D,INFRA design
-    class ARCHDOC,SPECSET,DESIGN_PUSH,SMOKE handoff
+    class ARCHDOC,UIUX,SPECSET,DESIGN_PUSH,SMOKE handoff
     class STOP,BLOCK stop
     class INDEV,SBR,BASE,PLAN,GEN,PLACE,COMMIT,RFD build
     class COV_FIX,BEHV_FIX,API_FIX,REG_FIX,STATIC_FIX,PW_FIX,PRE_FIX heal
@@ -224,7 +226,9 @@ flowchart TD
 
     AD --> DESIGN["<b>System-level design stages</b> (Conditional)<br/>Functional design, non-functional requirements, non-functional design<br/>and infrastructure design. The existing architecture from ATLAS is the<br/>starting point, and each document records the change from it.<br/>Each stage is written to its document and approved by the user."]
     DESIGN --> ARCHDOC["<b>Design handoff checkpoint:</b><br/>The framework asks once: Set up the CI/CD eval pipeline? (yes/no). On yes, it generates the CI pipeline,<br/>guides the User for manual CI setup steps, and waits for user input to proceed.<br/>It writes spec/behavior.feature for epic level gherkin scenarios,<br/>and assembles <b>spec/plans/architecture.md</b> from the approved designs and ATLAS.<br/>It derives the architecture rubric from architecture.md and a security rubric<br/>from the OWASP Top 10. "]
-    ARCHDOC --> SPECSET{"<b>Behaviour specs and test plans</b> (before any code)<br/>For every story, its .feature scenario and manual test plan.<br/>Every acceptance criterion needs a scenario and a test case.<br/>Request Changes or Continue to Next Stage."}
+    ARCHDOC --> UIUX{"<b>UI/UX Mockups</b> (only when the user opted in during Requirements Analysis)<br/>Framework Generates: HTML mockups of every screen and open it in the browser<br/>and revise the design until the user approves them.<br/>Code generation is later grounded in the approved mockups."}
+    UIUX -->|"Request Changes"| UIUX
+    UIUX -->|"Approved or not opted in"| SPECSET{"<b>Behaviour specs and test plans</b> (before any code)<br/>For every story, its .feature scenario and manual test plan.<br/>Every acceptance criterion needs a scenario and a test case.<br/>Request Changes or Continue to Next Stage."}
     SPECSET -->|"Request Changes"| SPECSET
     SPECSET -->|"Continue to Next Stage"| DESIGN_PUSH["The design documents, contracts, test plans and evaluation files<br/>are committed and pushed on the Epic branch."]
     DESIGN_PUSH --> SMOKE["<b>CI smoke test</b> (only when CI was selected)<br/>A scratch pull request with no changes proves the CI environment works.<br/>It is merged and deleted on success."]
@@ -319,7 +323,7 @@ flowchart TD
     class ATLAS_SYNC,ATLAS,CONNECT,CTX,RA_Q,RA_APPROVE,STORY_CP,SS,COV,BEHV,API_T,REG,STATIC,PW,RDG,PREFLIGHT,MORE checkpoint
     class RRE,REUSE,PULL,RE ATLAS
     class AD,DESIGN design
-    class ARCHDOC,SPECSET,DESIGN_PUSH,SMOKE handoff
+    class ARCHDOC,UIUX,SPECSET,DESIGN_PUSH,SMOKE handoff
     class STOP,BLOCK,HALT_A stop
     class INDEV,SBR,BASE,PLAN,GEN,PLACE,COMMIT,RFD build
     class COV_FIX,BEHV_FIX,API_FIX,REG_FIX,STATIC_FIX,PW_FIX,PRE_FIX heal
@@ -361,7 +365,9 @@ flowchart TD
     STORY1 --> WP["<b>Workflow Planning</b> (automatic)<br/>"]
     WP --> DESIGN["<b>Design stages</b> (Conditional)<br/>Only those the fix needs, each written to its document<br/>and approved by the user."]
     DESIGN --> BOOT["<b>Design handoff checkpoint</b><br/>spec/behavior.feature, architecture.md, the rubrics and the configuration<br/>are created for the ticket.<br/>If the user asked for CI, it generates the CI pipeline,<br/>guides the User for manual CI setup steps, and waits for user input to proceed."]
-    BOOT --> SPECSET{"<b>Behaviour spec and test plan</b> (before any code)<br/><b>spec/behavior/bug-&lt;ticket-id&gt;.feature</b>, with a scenario per acceptance<br/>criterion plus one that reproduces the defect, and the manual test plan<br/>in <b>spec/test-plans/&lt;ticket-id&gt;-&lt;title&gt;/</b>.<br/>Request Changes or Continue to Next Stage."}
+    BOOT --> UIUX{"<b>UI/UX Mockups</b> (only when the user opted in and the change touches the interface)<br/>Framework Generates: HTML mockups of every screen and open it in the browser<br/>and revise the design until the user approves them.<br/>"}
+    UIUX -->|"Request Changes"| UIUX
+    UIUX -->|"Approved or not opted in"| SPECSET{"<b>Behaviour spec and test plan</b> (before any code)<br/><b>spec/behavior/bug-&lt;ticket-id&gt;.feature</b>, with a scenario per acceptance<br/>criterion plus one that reproduces the defect, and the manual test plan<br/>in <b>spec/test-plans/&lt;ticket-id&gt;-&lt;title&gt;/</b>.<br/>Request Changes or Continue to Next Stage."}
     SPECSET -->|"Request Changes"| SPECSET
     SPECSET -->|"Continue to Next Stage"| PUSH["The analysis and design documents are committed and pushed<br/>on the bug branch.<br/>If CI was just set up, the smoke test runs."]
     PUSH --> BREAK{"<b>Continue to bug fix implementation now? (yes / no)</b>"}
@@ -442,7 +448,7 @@ flowchart TD
     class ATLAS_SYNC,RE,RA_APPROVE,ORIGIN_Q,STORY1,BREAK,FIX,BEHV,APIGATE,REGRESSION,STATICCP,PW,RDG,PREFLIGHT,PR_HUMAN checkpoint
     class ORIGIN,LABEL,LINK origin
     class DESIGN design
-    class BOOT,SPECSET,PUSH handoff
+    class BOOT,UIUX,SPECSET,PUSH handoff
     class HALT stop
     class INDEV,BASELINE,PLAN,GEN,MANIFEST,COMMIT,STAYS build
     class FIX_HEAL,BEHV_HEAL,API_HEAL,REG_HEAL,STATIC_HEAL,PW_HEAL,PRE_HEAL heal
@@ -478,7 +484,9 @@ flowchart TD
     STORY1 --> WP["<b>Workflow Planning</b> (automatic)"]
     WP --> DESIGN["<b>Design stages</b> (Conditional)<br/>Only those the change needs, each written to its document<br/>and approved by the user."]
     DESIGN --> BOOT["<b>Design handoff checkpoint</b><br/>behavior.feature, architecture.md, rubrics and configuration,<br/>created. If CI was requested<br/>, it generates the CI pipeline, guides the User for manual CI setup steps,<br/>and waits for user input to proceed."]
-    BOOT --> SPECSET{"<b>Behaviour spec and test plan</b> (before any code)<br/><b>spec/behavior/enhancement-&lt;ticket-id&gt;.feature</b> and the manual<br/>test plan in <b>spec/test-plans/&lt;ticket-id&gt;-&lt;title&gt;/</b>.<br/>Request Changes or Continue to Next Stage."}
+    BOOT --> UIUX{"<b>UI/UX Mockups</b> (only when the user opted in and the change touches the interface)<br/>Framework Generates: HTML mockups of every screen and open it in the browser<br/>and revise the design until the user approves them.<br/>"}
+    UIUX -->|"Request Changes"| UIUX
+    UIUX -->|"Approved or not opted in"| SPECSET{"<b>Behaviour spec and test plan</b> (before any code)<br/><b>spec/behavior/enhancement-&lt;ticket-id&gt;.feature</b> and the manual<br/>test plan in <b>spec/test-plans/&lt;ticket-id&gt;-&lt;title&gt;/</b>.<br/>Request Changes or Continue to Next Stage."}
     SPECSET -->|"Request Changes"| SPECSET
     SPECSET -->|"Continue to Next Stage"| PUSH["The analysis and design documents are committed and pushed.<br/><br/>If CI was just set up, the smoke test runs."]
     PUSH --> READY{"<b>Ready to implement now? (yes / no)</b>"}
@@ -557,7 +565,7 @@ flowchart TD
     class TICKET,BRANCH,RA,IMPACT,WP planning
     class ATLAS_SYNC,RE,RA_APPROVE,STORY1,READY,CODE,BEHV,APIGATE,REGRESSION,STATICCP,PW,DECIDE,PREFLIGHT,PR_HUMAN checkpoint
     class DESIGN design
-    class BOOT,SPECSET,PUSH handoff
+    class BOOT,UIUX,SPECSET,PUSH handoff
     class HALT stop
     class INDEV,BASELINE,PLAN,GEN,MANIFEST,COMMIT,STAYS build
     class CODE_HEAL,BEHV_HEAL,API_HEAL,REG_HEAL,STATIC_HEAL,PW_HEAL,PRE_HEAL heal

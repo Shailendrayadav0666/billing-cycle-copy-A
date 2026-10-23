@@ -8,22 +8,23 @@ HELIX AIRE is an adaptive, AI-driven software development workflow framework. It
 
 1. [How It Works](#how-it-works)
 2. [Getting the Framework into Your Repository](#getting-the-framework-into-your-repository)
-3. [Prerequisites](#prerequisites)
-4. [The CI/CD Evaluation Pipeline](#the-cicd-evaluation-pipeline)
-5. [Usage](#usage)
-6. [Where Files Go](#where-files-go)
-7. [Context Project](#context-project)
-8. [Resumable Sessions](#resumable-sessions)
-9. [Parallel Development Without Conflicts](#parallel-development-without-conflicts)
-10. [The Epic Journey](#the-epic-journey)
-11. [The Bug-Fix Journey](#the-bug-fix-journey)
-12. [The Enhancement Journey](#the-enhancement-journey)
-13. [Changes While an Epic Is Still Open](#changes-while-an-epic-is-still-open)
-14. [Fixing a Rejected Pull Request](#fixing-a-rejected-pull-request)
-15. [Dependency Graph](#dependency-graph)
-16. [Keyword Workflows](#keyword-workflows)
-17. [Claude Code Skills](#claude-code-skills)
-18. [Agents](#agents)
+3. [Moving a Project from AIRE v0.5 to AIRE v1](#moving-a-project-from-aire-v05-to-aire-v1)
+4. [Prerequisites](#prerequisites)
+5. [The CI/CD Evaluation Pipeline](#the-cicd-evaluation-pipeline)
+6. [Usage](#usage)
+7. [Where Files Go](#where-files-go)
+8. [Context Project](#context-project)
+9. [Resumable Sessions](#resumable-sessions)
+10. [Parallel Development Without Conflicts](#parallel-development-without-conflicts)
+11. [The Epic Journey](#the-epic-journey)
+12. [The Bug-Fix Journey](#the-bug-fix-journey)
+13. [The Enhancement Journey](#the-enhancement-journey)
+14. [Changes While an Epic Is Still Open](#changes-while-an-epic-is-still-open)
+15. [Fixing a Rejected Pull Request](#fixing-a-rejected-pull-request)
+16. [Dependency Graph](#dependency-graph)
+17. [Keyword Workflows](#keyword-workflows)
+18. [Claude Code Skills](#claude-code-skills)
+19. [Agents](#agents)
 
 ---
 
@@ -128,6 +129,39 @@ Changes to the README or other documentation never trigger an update. Your own c
 `.claude/skills/` and your own `.gitattributes` entries are left untouched.
 
 Once the installation pull request is merged, set up the prerequisites below, then type `Using AIRE`.
+
+---
+
+## Moving a Project from AIRE v0.5 to AIRE v1
+
+AIRE v0.5 (the AIRE SDLC Agentic Framework) is a different framework. It was installed 
+with the `aire` CLI commands (`aire init` / `aire update`), and it kept its agents, workflows and rulebooks
+in `SPEC/` and the IDE folders. AIRE v1 shares none of those files. Do not run the two frameworks side by side:
+clean out v0.5 first, then get your repository added to the subscriber list and get v1 through the pull request that follows.
+
+1. **Finish the ongoing development first:** If a development is in progress in the middle
+   of a cycle on v0.5, complete it on v0.5 and close it then shift to v1 as it cannot pick up a
+   v0.5 cycle in the middle.
+2. **Remove the v0.5 framework files:** from the project repository:
+
+   | Remove | What it is |
+   |--------|------------|
+   | `SPEC/agents/`, `SPEC/rulebooks/`, `SPEC/templates/`, `SPEC/workflows/` | v0.5 agents, rulebooks, templates and workflows |
+   | The AIRE IDE specific files `aire init` added to your IDE folder (for example `.claude/`, `.github/`, `.cursor/`) | v0.5 instructions, agents, skills and rules for your IDE. Remove only the AIRE files, keep your own files in those folders |
+
+   Most of these were git-ignored by v0.5, so delete them from each user's local folder as well
+   as from the repository if they were pushed.
+3. **Keep the project's own files, as required:**
+   - your application code and tests;
+   - `SPEC/references/` (team-written PRDs and designs). Move anything still useful to
+     `spec/context-project/new-references/` so v1 can read it (see [Context Project](#context-project));
+   - `docs/` (the documents v0.5 generated). v1 does not read them, keep them as history if needed.
+   - `.mcp.json` 
+4. **Get the repository subscribed:** Ask a HELIX AIRE maintainer to add the project repository to
+   the subscriber registry, as in [Step 1: one-time setup](#step-1-one-time-setup).
+5. **Merge the v1 pull request:** `[AIRE] First-time framework installation (v<N>)` arrives with
+   `CLAUDE.md`, `aire-workflow/`, `.claude/skills/`, `.gitattributes` and `.aire-version`. Review and
+   merge it, set up the [prerequisites](#prerequisites) below, and you are ready to use V1.
 
 ---
 
@@ -397,7 +431,7 @@ From there:
    lettered options with an "Other" choice; you answer under each `[Answer]:` tag and reply "done".
    Four questions are asked in the chat instead: which tracker to use, whether to mirror the cycle's
    artifacts to Atlas, which context documents to read, and whether to set up the CI pipeline.
-3. Review every document the framework produces. The requirements, the story set, each design document, test plans and the behaviour files all require Human approval.
+3. Review every document the framework produces. The requirements, the story set, each design document, the UI/UX mockups (when you opt in), test plans and the behaviour files all require Human approval.
 4. Once the design is approved, the framework stops and hands over. From then on, `dev-implement` builds
    one story at a time without asking anything beyond which story to build.
 
@@ -419,6 +453,7 @@ The framework writes only into these locations:
   - `plans/`, every planning and design document: `epic-brief.md`, `requirements.md`,
     `stories.md`, `personas.md`, `dependency-graph.yml`, `executions.md`, `application-design.md`,
     `functional-design.md`, `nfr.md`, `infrastructure-design.md`, `architecture.md`,
+    `ui-ux-design.md` and the `ui-ux/` HTML mockups (when you opt in),
     `atlas-deep-dive.md` and the other existing-system documents, plus `delta/<CYCLE-ID>-<slug>/`,
     written when the cycle closes.
   - `spec-generation/`, the question files and generation plans.
@@ -537,8 +572,8 @@ It then runs the planning stages:
 - Reverse engineering, for existing code only, when Atlas has no deep dive and you chose to generate
   documentation locally.
 - Requirements analysis: The framework asks clarifying questions in a file, including whether to turn
-  on the optional extensions (resiliency and property-based testing). The Security Baseline is always
-  on. It then writes `spec/plans/requirements.md`, where every requirement has a permanent identifier
+  on the optional extensions (resiliency, property-based testing and UI/UX mockups). The Security
+  Baseline is always on. It then writes `spec/plans/requirements.md`, where every requirement has a permanent identifier
   such as `REQ-F-03`. Once you approve, the planning documents are committed and pushed on the Epic
   branch. No pull request is raised at this point.
 - User stories: Stories are written all at once for a fixed team size of two. Every
@@ -569,15 +604,20 @@ When design is done, the framework runs the design handoff checkpoint:
    and security judge checks score every story against.
 5. If you said yes to CI, it generates the pipeline from your repository's real stack and thresholds,
    prints the CI setup steps, and waits for `proceed` or `skip`.
-6. For every story, before any code exists, it writes the Gherkin contract
+6. If you opted in to UI/UX mockups, it builds an HTML mockup of every screen the stories touch,
+   following its accessibility (WCAG 2.2 AA minimum), responsive and design standards, opens them in
+   your browser, and revises them until you approve. It first asks a few design questions (screen
+   sizes, accessibility level, navigation and similar) when the requirements and design leave them
+   open. Code generation follows them.
+7. For every story, before any code exists, it writes the Gherkin contract
    `spec/behavior/story-N.M.feature` (one `@AC-n` scenario per acceptance criterion, including failure
    paths) and the test plan in `spec/test-plans/<TICKET-ID>-<title>/`. Every acceptance criterion must have at least
    one scenario and at least one test case. You review the whole set once and choose Request Changes
    or Continue to Next Stage.
-7. It commits and pushes the design documents, contracts, test plans and evaluation files on the Epic
+8. It commits and pushes the design documents, contracts, test plans and evaluation files on the Epic
    branch.
-8. If CI was set up, it opens a scratch pull request with no changes to prove the CI environment works.
-9. It shows the Development Handoff message and stops. Code generation never starts on its own.
+9. If CI was set up, it opens a scratch pull request with no changes to prove the CI environment works.
+10. It shows the Development Handoff message and stops. Code generation never starts on its own.
 
 From here, the developer pulls the Epic branch and types `dev-implement` once per story.
 
@@ -715,8 +755,9 @@ All work happens on one branch, `bug/<TICKET-ID>-<title>`, cut from the base bra
    push (the ticket already exists) and no dependency graph.
 7. Workflow planning and any design stages the bug fix needs are executed.
 8. The design handoff checkpoint, as in the Epic journey: the architecture document and rubrics if they
-   are missing, the CI pipeline if you asked for it, and the bug's Gherkin contract and test plan. The
-   contract includes a scenario that reproduces the defect. You approve the contract and plan once.
+   are missing, the CI pipeline if you asked for it, the UI/UX mockups if you opted in and the fix
+   changes the interface, and the bug's Gherkin contract and test plan. The contract includes a
+   scenario that reproduces the defect. You approve the contract and plan once.
 9. The analysis and design documents are committed and pushed on the bug branch. If CI was just set up, the smoke test runs. You are then asked:
    "Continue to bug fix implementation now? (yes / no)". Yes continues in the same session. No stops
    with everything saved; type `ticket-implement <TICKET-ID>` later to resume.
@@ -804,7 +845,8 @@ All work happens on one branch, `enhancement/<TICKET-ID>-<title>`, cut from the 
    line evidence. There is no AI-origin detection.
 6. One story, covering every requirement in this cycle's requirements document. You approve it.
 7. Workflow planning and any design stages needed.
-8. The design handoff checkpoint, with the enhancement's Gherkin contract and test plan approved once.
+8. The design handoff checkpoint: the UI/UX mockups if you opted in and the change touches the
+   interface, then the enhancement's Gherkin contract and test plan, approved once.
 9. The documents are committed and pushed, the smoke test runs if CI was just set up, and you are asked
    "Ready to implement now? (yes / no)". No stops with everything saved; `ticket-implement
    <TICKET-ID>` resumes it later.

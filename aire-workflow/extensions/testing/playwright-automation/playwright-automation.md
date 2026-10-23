@@ -27,34 +27,21 @@ and remain manual-only, full stop. Do not invent a parallel API-automation mecha
 (`aire-workflow/agents/playwright-implement-agent.md`) for a **post-merge, on-demand** run against the
 integration branch, gated on both the dev's and ve's PRs having already merged (Step 2a).
 
-🔴 **A SECOND caller now exists — and it INVOKES the same skill rather than copying it.**
-`implementation/code-generation.md` Step 11d (the Playwright UI Automation Gate inside `dev-implement` /
-`bug-fix-implement` / `enhancement-implement`) invokes the **`playwright-implement` skill** via the
-Skill tool with **`mode: workflow`**, automatically and pre-PR, whenever a work unit's own plan touches
-UI. WORKFLOW MODE is defined once, in `agents/playwright-implement-agent.md`'s **Mode Detection**
-table; in short it skips the story-picker, the both-merges gate, the integration-branch checkout, the
-Step 2 Approval Gate and the Step 12 Push Gate, auto-derives the Step 0d seed, starts and tears down
-the app itself, still runs **`--headed` exactly as standalone does** (the developer is at their
-machine and watching the story they just built is the point), and treats a `test.fixme()` outcome as a
-still-failing gate rather than an advisory flag — its artifacts ride the work unit's own commit.
-🔴 **Nothing about the Planner/Generator/Healer mechanics below changes between modes.**
-
-The two callers do not compete: the automatic WORKFLOW MODE run happens first, pre-merge;
-`/playwright-implement` remains available standalone afterward for a story this gate skipped (no UI at
-plan time, later found to need it) or for re-automation after the fact — and finds
-`tests/e2e/<story-slug>/` already populated, applying its normal refresh-or-stop convention.
+🔴 **It is the ONLY caller.** `dev-implement`, `bug-fix-implement`, `enhancement-implement` and the
+workflows that reuse their gate chain run **no** Playwright automation and never invoke this skill —
+there is no in-workflow ("WORKFLOW MODE") run. Every `tests/e2e/<story-slug>/` spec and every
+`spec/playwright-specs/<story-slug>.md` plan comes from a standalone run; a re-run finds them already
+populated and applies its normal refresh-or-stop convention.
 
 **🔴 ADDITIVE, NOT A REPLACEMENT.** `test-plan.md` / `/ve-implement` keep producing manual,
 black-box, human-executable test steps exactly as today. This file's only input is the **finished,
 Approved** manual artifacts for UI-relevant cases; it never asks `/ve-implement` to behave
 differently and never edits its output files.
 
-**🔴 Always mandatory — no opt-in, no gate**: per CLAUDE.md, this extension is loaded and enforced
-for EVERY project like Security Baseline. `runtime-artifacts/aire-state.md`'s `## Extension
-Configuration` table carries a **Playwright Test Automation** row with `Enabled = Yes`, recorded
-automatically at workflow start — never asked as a question, never left to the user to decide. If
-that row is somehow absent or reads `No` (e.g. a stale/legacy project state), treat it as drift to
-correct — set it to `Yes` — rather than a reason to refuse running.
+**🔴 Standalone only — no opt-in question, never enforced by a workflow**: per CLAUDE.md, this
+extension is NOT loaded at workflow start and is NOT a gate of any implement workflow. It loads only
+when the Verification Engineer runs `/playwright-implement`; running the skill is the opt-in. An
+absent `## Extension Configuration` row is never a reason to refuse running.
 
 ---
 
@@ -157,9 +144,10 @@ the CURRENT cycle — a re-run in a LATER cycle finds `tests/e2e/<story-slug>/` 
 live plan, which here means "archived", not "hand-authored".
 
 🔴 **This is why the two provenance checks are scoped differently, and neither may be loosened into the
-other**: `implementation/code-generation.md` Step 11d asserts the plan for **this unit, this run**
-(always live — the skill just wrote it), while `implementation/code-review.md`'s diff-scoped check
-resolves **live OR archive** and fires only on specs the diff **ADDS**. Missing from *both* locations is
+other**: this skill asserts the plan for **this story, this run** (always live — it just wrote it),
+while a later re-run resolves **live OR archive**. (`implementation/code-review.md` no longer checks
+provenance — it treats ANY Playwright file in a work unit's diff as a Blocker, because implement
+workflows never write them.) Missing from *both* locations is
 still the forgery signal, at full Blocker strength. A pre-existing spec that this unit merely modified
 is judged on its own merits — a regression to fix in the code, or a **declared** supersede — never a
 provenance finding, and never a spec quietly healed into agreement with new behaviour.
@@ -193,7 +181,7 @@ test -f package.json && grep -q '"@playwright/test"' package.json    # base Play
 test -f .claude/agents/playwright-test-planner.md                     # agents scaffolded
 test -f .mcp.json && grep -q '"playwright-test"' .mcp.json            # MCP server registered
 ```
-- **Base Playwright missing** → confirm-first (STANDALONE; in WORKFLOW MODE the announced plan's Playwright Readiness step is the authorisation — announce, do not ask), then run (verified non-interactive — do **NOT** use
+- **Base Playwright missing** → confirm-first, then run (verified non-interactive — do **NOT** use
   `npm init playwright@latest` bare; that command is an **interactive wizard** — language choice,
   test folder, GitHub Actions, browser download prompts — and hangs/errors when run through a
   non-interactive shell, which is how this framework always invokes it):
@@ -203,7 +191,7 @@ test -f .mcp.json && grep -q '"playwright-test"' .mcp.json            # MCP serv
   This installs the dependency and downloads browser binaries with no prompts. It does **not** create
   `playwright.config.ts` — that's fine, Step 3 (Generator) creates/extends it itself. Do not
   additionally run `create-playwright`/`npm init playwright@latest` — one non-interactive path only.
-- **Agents/MCP config missing** → confirm-first (STANDALONE; WORKFLOW MODE announces instead, as above), then run (from `<playwright-root>`, resolved in
+- **Agents/MCP config missing** → confirm-first, then run (from `<playwright-root>`, resolved in
   Step -1):
   ```bash
   cd <playwright-root> && npx playwright init-agents --loop=claude
@@ -237,19 +225,17 @@ test -f .mcp.json && grep -q '"playwright-test"' .mcp.json            # MCP serv
   2. Run `npx playwright init-agents --loop=claude`.
   3. If step 1 found other servers, `Edit`/`Write` `.mcp.json` back to a merged form — the
      `playwright-test` entry `init-agents` just wrote, plus every other server that was there before.
-     STANDALONE: confirm the merge with the user before writing it back (this touches shared project
-     config — do not silently assume the merge is correct). WORKFLOW MODE: write it back and announce
-     the merged server list — never drop a server, never ask.
+     Confirm the merge with the user before writing it back (this touches shared project
+     config — do not silently assume the merge is correct). Never drop a server.
   4. If `.mcp.json` didn't exist before, no merge is needed — proceed as-is.
 - **🔴 IF `init-agents` JUST RAN IN THIS SESSION — HALT IMMEDIATELY AND ASK FOR A SESSION RESTART.
-  Both modes. Do NOT continue to Step 0b, do NOT invoke the Planner, do NOT wait for a subagent to
+  Do NOT continue to Step 0b, do NOT invoke the Planner, do NOT wait for a subagent to
   fail first.** Claude Code loads MCP servers **at session start**, so the `playwright-test` server
   `init-agents` just wrote into `.mcp.json` is **not connected in this session** — the
   Planner/Generator/Healer subagents physically cannot work yet. This is a Claude Code host
   limitation, not something a rule file can route around, so the pause is the correct behaviour, not
-  a failure. 🔴 **This halt is a sanctioned hard stop, NOT an approval prompt** — it is exactly the
-  same class as the Retry-Limit halt: the run cannot physically continue, so asking nothing is not an
-  option. It does not violate any workflow's "no prompts after the story key" rule.
+  a failure. 🔴 **This halt is a sanctioned hard stop, NOT an approval prompt** — the run cannot
+  physically continue.
 
   Emit this **verbatim**, substituting every bracketed value, then **STOP**:
 
@@ -270,8 +256,7 @@ test -f .mcp.json && grep -q '"playwright-test"' .mcp.json            # MCP serv
 
   NEXT ACTIONS:
      1.  Restart / reload this Claude Code session.
-     2.  Type the SAME keyword again: [dev-implement | bug-fix-implement | ticket-implement <TICKET-ID> |
-         epic-enhance | epic-bugfix | pr-fix <PR> | /playwright-implement <story or TICKET-ID>]
+     2.  Type the SAME keyword again: /playwright-implement <story or TICKET-ID>
 
      On resume it SKIPS every gate already recorded as passed and picks up at the Planner — it does not
      redo the code, the earlier gates, or this install.
@@ -279,19 +264,13 @@ test -f .mcp.json && grep -q '"playwright-test"' .mcp.json            # MCP serv
   Type the keyword EXACTLY as shown — any other phrasing is not a framework trigger.
   ```
 
-  🔴 **In WORKFLOW MODE, before emitting the block**, record
-  `PAUSED — Playwright agents installed — resume at <the invoking workflow's Playwright gate step> — <timestamp>`
-  in the work unit's `runtime-artifacts/stories/<key>/state.md` `## Progress` (`common/parallel-work-state.md`) —
-  the invoking workflow's resume check looks for exactly that record.
-
   **On resume — do NOT restart this skill's flow from Step 0.** Re-read the work unit's audit trail
-  (`runtime-artifacts/stories/<key>/audit.md` in workflow mode; `runtime-artifacts/audit.md` standalone)
+  (`runtime-artifacts/audit.md`)
   for this work unit's run entry (Step 7 format) and skip every gate/check already logged there before
   the restart — Prerequisite Gate results (dependency/agent-scaffolding, local server, fixture-data
   checklist), the Seed Test Gate decision, and any scope decision (which manual cases are in/out of
   automation scope) all carry forward unchanged. Resume at the first step whose confirmation is NOT yet
-  in that audit trail — normally the Planner (Step 1). In WORKFLOW MODE the invoking
-  workflow likewise resumes at its Playwright gate, **not** at story selection or code generation. Only
+  in that audit trail — normally the Planner (Step 1). Only
   re-run an already-logged gate if the user says something changed (e.g. the local server is now down,
   or they want to revise the scope decision).
 
@@ -299,16 +278,6 @@ test -f .mcp.json && grep -q '"playwright-test"' .mcp.json            # MCP serv
   report missing `mcp__playwright-test__*` tools, emit the same block and stop there — never work
   around it, and never fall back to hand-authoring (Rule 1b).
 - **All present** → proceed, log in `runtime-artifacts/audit.md`. 🔴 **Still run the AUTO-RELOCATE step above** — its `mkdir -p spec/playwright-specs` is what creates the Planner's output directory, and it is NOT conditional on `init-agents` having just run.
-
-#### 🔴 Step 0a in WORKFLOW MODE — "confirm-first" resolves to INSTALL, never to skip
-
-The install actions above are **confirm-first**, which has a defined answer in each mode. Getting this
-wrong is the single observed failure of this gate, so it is spelled out rather than implied:
-
-| Mode | A missing dependency / agent scaffolding / MCP entry means |
-|---|---|
-| **STANDALONE** | Ask the user, then install on yes. |
-| **WORKFLOW** | 🔴 **INSTALL IT AUTOMATICALLY — announced, never asked.** The invoking workflow has no approval gates, so "confirm-first" resolves to "proceed"; it NEVER resolves to "skip". Run `npm i -D @playwright/test && npx playwright install` and/or `npx playwright init-agents --loop=claude` exactly as written above, then continue the gate. |
 
 🔴 **"The Planner/Generator/Healer agents are not installed" is an ERROR to fix, never a gap to
 disclose.** It is the same class as `"gitleaks not installed"`, which `common/eval-framework.md`
@@ -338,9 +307,7 @@ curl -sf http://localhost:<FRONTEND_PORT> >/dev/null
 - Port sourced from the story's manual plan **System Under Test** block — never guessed; mark
   ` TO CONFIRM` if undocumented.
 - **Down** → **STOP**. Tell the user which command to run (read from the project's own
-  README/`package.json` scripts — never invented). Do not silently background-start it. (STANDALONE.
-  In WORKFLOW MODE nobody is at a terminal, so the agent starts it itself, backgrounded, and tears it
-  down on every exit path — `playwright-implement-agent.md` Mode Detection, Step 5b.)
+  README/`package.json` scripts — never invented). Do not silently background-start it.
 - **Up** → proceed.
 
 ### Step 0c — Test data / fixture accounts seeded
@@ -373,10 +340,7 @@ content first.
    Draft a **proposed addition** to `tests/e2e/seed.spec.ts` (or a proposed file, if none exists yet) covering
    just that login/navigation flow.
 3. **Always present the draft for confirmation before writing it — this is the Planner Gate the user
-   asked for** (🔴 **STANDALONE MODE only. In WORKFLOW MODE — `playwright-implement-agent.md` Mode
-   Detection — auto-apply a confidently-derived draft, announced, never asked; and if it genuinely
-   cannot be derived, HALT with a one-time request for the seed content rather than guessing a login
-   flow silently**):
+   asked for**:
    ```markdown
     Seed Test Gate — tests/e2e/seed.spec.ts
 
@@ -460,13 +424,7 @@ its exploration.
 Playwright's own shipped flow has no built-in human checkpoint between Planner and Generator. This
 gate is **this framework's requirement**, layered on top.
 
-🔴 **STANDALONE MODE only. In WORKFLOW MODE this gate is SKIPPED** (`playwright-implement-agent.md`
-Mode Detection): the invoking implement workflow has no approval gates, so the Planner's plan is
-auto-approved and the Generator runs immediately. Log
-`Playwright plan auto-approved (workflow mode, no gate) — spec/playwright-specs/<story-slug>.md`
-in `runtime-artifacts/audit.md` and proceed to Step 3. The compensating control is that the caller's own gate
-requires every generated spec to actually PASS before code review, and any failure is remediated in
-that same run.
+🔴 **Never skipped** — there is no workflow mode that auto-approves the Planner's plan.
 
 ```markdown
 # Playwright Test Plan Ready — [TICKET-ID] [Story title]
@@ -603,11 +561,10 @@ to regenerate `playwright-test-report.json`. Step 5 below removes that third run
 per-file re-verification doubles as the post-heal evidence run, so there is exactly one re-run after
 healing, not two.
 
-🔴 **WORKFLOW MODE runs `--headed` too — this step is IDENTICAL in both modes.** The developer is at
-their own machine while `dev-implement` runs, and watching the browser exercise the story they just
-built is exactly the point; there is no reason to hide it. **The ONLY environment that runs headless
-is CI**, and only because a GitHub runner has no display at all — that is a property of CI, never a
-policy this framework applies locally.
+🔴 **Always `--headed`.** The Verification Engineer is at their own machine, and watching the browser
+exercise the story is the point. **The ONLY environment that runs headless is CI**, and only because a
+GitHub runner has no display at all — that is a property of CI, never a policy this framework applies
+locally.
 
 **The one permitted local fallback**: if the machine genuinely has no display (a container or an SSH
 session with no X server, proven by the run failing on a missing display — not assumed), fall back to
@@ -734,12 +691,8 @@ instead of guesswork.
 2. **UI/browser only.** No backend/API automation mechanism exists in this extension. Backend/API
    manual cases stay manual-only, reported not hidden.
 3. **Additive, not a replacement** for `test-plan.md` / `/ve-implement`.
-4. **Two mandatory human gates — in STANDALONE MODE**: the Seed Test Gate (Step 0d, for anything not
-   already covered by the shared seed) and the Approval Gate (Step 2, on the Planner's own plan
-   output). Neither is skippable there. 🔴 **In WORKFLOW MODE both are skipped by the invoking
-   workflow's own authorization** (`agents/playwright-implement-agent.md` Mode Detection) — the seed
-   auto-derives and the plan auto-approves — but **every verification step still runs**, and a failing
-   spec still fails the caller's gate. Skipping an approval is never skipping a check.
+4. **Two mandatory human gates**: the Seed Test Gate (Step 0d, for anything not already covered by the
+   shared seed) and the Approval Gate (Step 2, on the Planner's own plan output). Neither is skippable.
 5. **AIRE's convention, layered on Playwright's own agents**: ONE shared `tests/e2e/seed.spec.ts`, ONE
    `spec/playwright-specs/` folder (renamed and relocated from Playwright's own default bare
    `specs/` — the auto-relocate step in Step 0a runs every time `init-agents` is invoked, since that
@@ -757,8 +710,7 @@ instead of guesswork.
     like `frontend/` — Claude Code only scans `.claude/agents/` and `.mcp.json` there. This is not a
     per-project judgment call; never install this scaffolding anywhere else.
 12. **`.mcp.json` is overwritten, not merged, by `init-agents`** — always read and preserve any other
-    configured MCP servers before running it, and confirm the merge with the user afterward (STANDALONE;
-    WORKFLOW MODE announces the merged list instead).
+    configured MCP servers before running it, and confirm the merge with the user afterward.
 13. **There is no file literally named `test-plan.md` generated per story.** Approval status
     lives only in the resolved audit trail (the design checkpoint's approval, or a standalone
     `/ve-implement` run entry — Prerequisites), never in a file of that name

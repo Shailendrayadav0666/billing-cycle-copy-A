@@ -33,7 +33,7 @@ It is the **third mid-epic workflow**, a peer of the other two — not a variant
 | Cycle | Its own: requirements, design stages, STOP checkpoint, archive | **None** — the epic's state, specs, rubrics and CI are reused |
 | Requirements | Its own scoped `requirements.md` | **The epic's `requirements.md`, amended and versioned in place** (`common/requirement-versioning.md`) |
 | Documents | brief, requirements, impact analysis, design docs, plan | **ONE bundle** — `spec/plans/change-requests/CR-<n>/` |
-| Earlier stories' tests | Not its concern | **Gherkin + test plans amended here; unit/API/Playwright named for `dev-implement`** |
+| Earlier stories' tests | Not its concern | **Gherkin + test plans amended here; unit/API named for `dev-implement`; Playwright specs flagged for the Verification Engineer** |
 | Questions | Several approvals | **ONE — the single gate (Phase 9)** |
 
 ---
@@ -119,9 +119,10 @@ Resolve `aire-workflow/` and load:
   `implementation/remediate.md`
 - When `## CI/CD Configuration` records `Enabled: Yes`: `common/ci-pipeline-generation.md` Sections
   4.0d, 4.0f, 4.0i and 6.6
-- 🔴 **Playwright specs are never touched here** — they are code-layer tests. A CR that invalidates one
-  names it on the Test Change Authorization list; `dev-implement` regenerates it through the
-  `playwright-implement` skill's own subagents, never by hand.
+- 🔴 **Playwright specs are never touched here, nor by `dev-implement`** — no implement workflow runs
+  Playwright automation. A CR that invalidates one flags it on the Test Change Authorization list
+  (action `flag for Verification Engineer — standalone /playwright-implement`); the Verification
+  Engineer regenerates it with the standalone `/playwright-implement` after the CR story's PR merges.
 
 ---
 
@@ -743,13 +744,14 @@ The CR leaves behind everything the build needs, and nothing it must re-derive:
 | earlier stories' `.feature` scenarios | **amended by the CR** in place, `@amended-by-cr-<n>` added | B2 tier |
 | `spec/test-plans/**` | **written/amended by the CR** via `ve-implement` WORKFLOW MODE | the Verification Engineer, after the PR merges |
 | `change-request.md` Section 6 | the implementation plan | `dev-implement` Part 1 grounds its own plan on it |
-| **Test Change Authorization list** (Section 5b) | the earlier stories' **unit / API / Playwright** tests that may change, each traced to an AMENDED or SUPERSEDED AC | 🔴 **`dev-implement`** — it updates them during generation |
+| **Test Change Authorization list** (Section 5b) | the earlier stories' **unit / API** tests that may change, each traced to an AMENDED or SUPERSEDED AC — plus any Playwright spec, flagged only | 🔴 **`dev-implement`** updates the unit / API tests during generation; a flagged Playwright spec goes to the Verification Engineer's standalone `/playwright-implement` |
 
 🔴 **The spec/code split is the whole point of the handoff:**
 
 - **The CR owns the spec layer** — `.feature` contracts and manual test plans. They are the *contract*,
   they must exist before code, and amending them is a requirement decision, not a coding one.
-- **`dev-implement` owns the code layer** — unit, API, step-definition and Playwright tests. They assert
+- **`dev-implement` owns the code layer** — unit, API and step-definition tests (Playwright specs belong
+  to the Verification Engineer's standalone `/playwright-implement`). They assert
   *implementation*, so they change when the code changes, in the same commit, under the same gates.
 
 Updating an obsolete unit test **before** the code that makes it correct would leave the epic branch red
@@ -878,12 +880,12 @@ Log which variant was shown.
 - 🔴 **STATE FROM THE GIT SNAPSHOT, MERGE STATE LIVE** (CR9), re-asserted immediately before writing.
 - 🔴 **NEVER CHANGE WORK IN FLIGHT.** A story being built, or with an open PR, blocks the change.
 - 🔴 **THE SPEC/CODE SPLIT.** The CR amends `.feature` contracts and manual test plans. It **names**
-  the earlier stories' unit/API/Playwright tests that the amendment invalidates (CR10) and leaves them
-  untouched — `dev-implement` updates exactly those, alongside the code, and proves it with Test Impact
+  the earlier stories' unit/API tests that the amendment invalidates (CR10), flags any Playwright spec
+  for the Verification Engineer, and leaves them all untouched — `dev-implement` updates exactly those, alongside the code, and proves it with Test Impact
   Reconciliation. Every other red test is a regression fixed in the code.
-- 🔴 **CONTRACTS MOVE TOGETHER.** An amended AC moves its `stories.md` text, scenario, test case, tests
-  and (UI) Playwright spec in the same PR; scenarios and plans are never rewritten to match code, and
-  Playwright specs only through the `playwright-implement` subagents.
+- 🔴 **CONTRACTS MOVE TOGETHER.** An amended AC moves its `stories.md` text, scenario, test case and tests
+  in the same PR; scenarios and plans are never rewritten to match code, and a (UI) Playwright spec is
+  flagged for the Verification Engineer's standalone `/playwright-implement`.
 - 🔴 **SPECS ONLY — NEVER CODE.** This workflow amends the agreement and the contracts that express it,
   then hands off. No story branch, no generation, no gate chain, no PR. Every gate still runs — on the
   CR story, inside `dev-implement`, where the code and its tests change together.

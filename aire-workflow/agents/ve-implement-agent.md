@@ -41,8 +41,8 @@ unit's uncommitted code).
     `implementation/specs-and-test-plans.md`): invoked **once per work unit of the cycle, before ANY
     code is generated**, on the epic/bug/enhancement branch. The generated plans are approved there,
     at that stage's own 2-option gate, and ride that checkpoint's commit.
-  - **The implement workflows' Playwright UI Automation Gate** (`implementation/code-generation.md`
-    Step 11d Part A, `dev-implement` Step 6.7, `bug-fix-implement` Step 7.7,
+  - **The implement workflows' Test Plan Verification step** (`implementation/code-generation.md`
+    Step 11d, `dev-implement` Step 6.7, `bug-fix-implement` Step 7.7,
     `enhancement-implement` Step 14.7): now a **verify-first backfill path only** — the plan normally
     already exists from the checkpoint, so the caller checks for it and invokes this skill only when
     it is genuinely absent.

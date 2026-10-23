@@ -4,7 +4,7 @@
 Code Generation is **per-story** and is triggered ONLY by the **`dev-implement`** keyword (orchestrated by `workflows/dev-implement.md`). It runs after the system-level design stages and the  STOP CHECKPOINT. It has two parts, preceded by Story Selection:
 - **Step 0 - Story Selection (MANDATORY)**: identify WHICH story to implement (by Tracker ID or Story ID), run the Doability Gate, move it from `Ready for Development` to `In Development`
 - **Part 1 - Planning**: Create detailed code generation plan — implementation steps per layer, ending with the mandatory **Unit Test & Coverage** step
-- **Part 2 - Generation**: Execute the announced plan to generate code and artifacts, then generate + RUN unit tests until coverage is ≥90% (Step 11a — same run), then — **when this story touches an API layer** — generate + RUN the API & Contract Testing Gate (Step 11a.5 — same run), then run the FULL repo regression suite and diff it against the pre-change baseline (Step 11b — same run), then run the Static Eval Gate D1–D7 and diff it against the pre-change static baseline (Step 11c — same run), then — **when this story touches the UI** — generate + RUN the Playwright UI Automation Gate using Playwright's own real Planner/Generator/Healer agents, against a locally started instance of the app, remediating any failure in this same run (Step 11d — same run), then re-run the ENTIRE existing `tests/e2e/` suite and diff it against the pre-change baseline so nothing an earlier work unit shipped was broken — for EVERY story, UI or not (Step 11e — same run, before Code Review). CI later re-executes the same Playwright run headless as a trust gate, never as the first execution.
+- **Part 2 - Generation**: Execute the announced plan to generate code and artifacts, then generate + RUN unit tests until coverage is ≥90% (Step 11a — same run), then — **when this story touches an API layer** — generate + RUN the API & Contract Testing Gate (Step 11a.5 — same run), then run the FULL repo regression suite and diff it against the pre-change baseline (Step 11b — same run), then run the Static Eval Gate D1–D7 and diff it against the pre-change static baseline (Step 11c — same run), then verify the story's approved manual test plan is present (Step 11d — same run, before Code Review). 🔴 **No Playwright browser automation runs inside code generation** — UI automation is the Verification Engineer's optional, standalone `/playwright-implement` run, never a gate of this stage.
 
 **Extensions**: test-mandating extensions (e.g., Property-Based Testing) apply — their required tests are included in the Unit Test & Coverage step per the extension's scope.
 
@@ -63,6 +63,42 @@ Design reference: none covers this component — built from ACs only
 
 This is your own self-check while writing the plan — satisfy it yourself before announcing the plan.
 
+### Step 1.6: Apply the UI/UX design standards (only when UI/UX Mockups ran — automatic, ask the user nothing)
+
+**Applies when** `## Extension Configuration` records `UI/UX Mockups` = Yes **and** this unit's plan
+has a Frontend Components Generation step (Step 2). Otherwise it is N/A: state
+`UI/UX design standards: N/A — <UI/UX Mockups not enabled | no UI touched by this unit>` in the plan
+and continue.
+
+**Load `common/ui-ux-design-standards.md`** and read the **Design system** section of
+`spec/plans/ui-ux-design.md`, which holds the agreed answers and token values. Then, for the frontend
+code this unit writes:
+
+- [ ] **Tokens become real theme values.** Map the agreed tokens (Section 2) into the project's
+      existing theme mechanism, such as CSS custom properties, the CSS framework config, or the
+      component library theme. Components use those tokens, never hard-coded colour, size or spacing
+      values. On brownfield, reuse the existing theme; add only the tokens the existing theme lacks.
+- [ ] **Accessibility** at the agreed level, WCAG 2.2 AA minimum (Section 3): semantic elements and
+      landmarks, visible labels linked to inputs, errors linked with `aria-describedby`, keyboard
+      operability, visible focus, accessible names for icon-only controls, target sizes,
+      `role="status"` or `role="alert"` for messages, and `prefers-reduced-motion`.
+- [ ] **Responsive behaviour** for every supported screen size (Section 4): the agreed breakpoints,
+      reflow at 320px, relative units, and each component's small-screen rule.
+- [ ] **UX patterns** as agreed (Section 5): validation, feedback, loading, empty and
+      destructive-action behaviour.
+- [ ] Before the Frontend Components Summary, run the Section 7 checklist against the components this
+      unit changed (the items that apply to running code, not to the mockup files) and fix any gap.
+
+The plan states, under the Frontend Components Generation step:
+
+```
+UI/UX design standards: applied — level <WCAG 2.2 AA | AAA>, sizes <desktop | desktop+tablet | all>, tokens mapped to <theme file>
+```
+
+The Frontend Components Summary records the checklist result. This step never relaxes an approved
+mockup: where the mockup and the standards agree, both are followed. A mockup point that would breach
+the Section 3 floor is fixed to meet the floor and noted in the plan.
+
 ## Step 2: Create Detailed Story Code Generation Plan
 - [ ] Read workspace root and project type from `runtime-artifacts/aire-state.md`
 - [ ] Determine code location (see Critical Rules for structure patterns)
@@ -76,16 +112,13 @@ This is your own self-check while writing the plan — satisfy it yourself befor
   - API Layer Summary
   - Repository Layer Generation
   - Repository Layer Summary
-  - Frontend Components Generation (if applicable) — 🔴 **the ONE place a work unit is declared frontend**: include it whenever the unit adds or changes anything the browser renders or runs (components, screens, pages, client-side routing, styles, UI state). Its presence makes Playwright Readiness and the Playwright UI Automation step below mandatory; its absence makes both N/A.
+  - Frontend Components Generation (if applicable) — 🔴 **the ONE place a work unit is declared frontend**: include it whenever the unit adds or changes anything the browser renders or runs (components, screens, pages, client-side routing, styles, UI state). When UI/UX Mockups ran, this step also carries the Step 1.6 standards line.
   - Frontend Components Summary (if applicable)
   - Database Migration Scripts (if data models exist)
   - **Unit Test & Coverage** — generate unit tests for ALL new/changed code, run them, measure coverage, and iterate until ≥90% (Step 11a — MANDATORY, always the step after implementation)
   - **API & Contract Testing Gate** — when this story adds/changes an API endpoint (i.e. the plan includes an API Layer Generation step above), generate automated tests against the actual endpoints, run them, and iterate until every applicable checklist item passes (Step 11a.5 — MANDATORY WHEN APPLICABLE, always the step after Step 11a; N/A when no API layer is touched)
   - **Full Regression vs Baseline** — re-run the ENTIRE repo suite (including any API & Contract tests from Step 11a.5) and diff against the baseline captured at the Story Branch checkpoint; any NEW failure is fixed in the same run (Step 11b — MANDATORY, always the step after Step 11a / Step 11a.5)
   - **Static Eval Gate (D1–D7)** — lint, type check, SAST, dependency vulnerabilities, licences, complexity, secrets; diffed against the static baseline captured at the Story Branch checkpoint; any NEW finding is fixed in the same run (Step 11c — MANDATORY, always the step after Step 11b)
-  - **Playwright Readiness** — only when the plan has a Frontend Components Generation step: runner, browsers and Playwright's official test agents installed before any code (the invoking workflow's readiness step — `dev-implement` Step 4.3, `bug-fix-implement` Step 4.4, `enhancement-implement` Step 11.4)
-  - **Playwright UI Automation** — only when the plan has a Frontend Components Generation step: `playwright-implement` in workflow mode generates, runs (`--headed`) and heals this unit's specs in `tests/e2e/<key>-<title>/` (Step 11d part B)
-  - **Playwright E2E Regression** — every plan: the full `tests/e2e/` suite re-run and diffed against the baseline (Step 11e); N/A only when `tests/e2e/` held no spec at baseline
   - Documentation Generation (API docs, README updates)
   - Deployment Artifacts Generation
 - [ ] Number each step sequentially
@@ -158,7 +191,8 @@ This is your own self-check while writing the plan — satisfy it yourself befor
     `tests/unit/`, mirroring the area of `src/` they cover (e.g. a components baseline/guard suite →
     `tests/unit/components/`) · **API & Contract Testing Gate tests (Step 11a.5)**: **repo-root**
     `tests/api/` · **Gherkin step definitions**: **repo-root** `tests/behavior/steps/` ·
-    **Playwright**: `tests/e2e/`
+    🔴 never `tests/e2e/` — Playwright specs are written only by the standalone `/playwright-implement`
+    skill, never by code generation
     🔴 **HARD RULE, no exceptions**: EVERY unit test — including a grouped/baseline UI-component test
     suite that covers many `src/` modules at once — goes under `tests/unit/`. Never create a sibling
     top-level folder (e.g. `tests/components/`) for it, even when the suite doesn't mirror `src/` 1:1.
@@ -312,255 +346,39 @@ The test gates prove the code **behaves** correctly. They say nothing about whet
 - [ ] Write `eval.json` + `eval-summary.md` per `common/eval-framework.md` Section 6 — `verdict` is `PASS` only if every entry under `gates` is `PASS` or `N/A`
 - [ ] Proceed to Step 11d only once the diff is clean
 
-## Step 11d:  Test Plans + Playwright UI Automation Gate (MANDATORY — after Step 11c, before Code Review, same run)
+## Step 11d:  Test Plan Verification (MANDATORY — after Step 11c, before Code Review, same run)
 
-**Purpose — two things, one step:**
-1. **The story ships with its own manual test plan** (`spec/test-plans/<TICKET-ID>-<title>/`) — normally the one **already written and approved at the STOP CHECKPOINT** (`CLAUDE.md` Step 1.7 / `implementation/specs-and-test-plans.md`), which this step only **verifies** is present; a genuinely absent plan is backfilled here. Either way the ve can simply **execute** it once the story PR merges rather than having to generate it first. This half applies to **every** story.
-2. Steps 11a–11c prove the code behaves correctly at the unit/API/static level, but none of them prove the **UI** actually works end-to-end, from a real browser, against the app running for real. For UI stories this step closes that gap by generating and RUNNING real Playwright browser automation in the SAME run, using **Playwright's own official Test Agents** (Planner, Generator, Healer) — never a hand-rolled equivalent.
+**Purpose**: the story ships with its own manual test plan (`spec/test-plans/<TICKET-ID>-<title>/`) — normally the one **already written and approved at the STOP CHECKPOINT** (`CLAUDE.md` Step 1.7 / `implementation/specs-and-test-plans.md`), which this step only **verifies** is present; a genuinely absent plan is backfilled here. Either way the Verification Engineer can simply **execute** it once the story PR merges rather than having to generate it first.
 
-🔴 **This is the FIRST execution, and it runs `--headed` on the developer's machine. CI's own copy of this gate (`common/ci-pipeline-generation.md` Section 4, `agentic-eval-pipeline.yml`'s `playwright` step) is a TRUST GATE that re-runs the same specs post-PR — headless only because a runner has no display — and it never originates coverage, only re-verifies what already ran here.**
+### Applicability (automatic — no question asked)
+- 🔴 **ALWAYS applies — every story, UI or not.** A backend-only story still gets its integration / API / contract / security / performance plans.
+- 🔴 **No Playwright browser automation runs here, or anywhere in code generation.** This step never invokes `playwright-implement`, never installs Playwright or its test agents, never starts the app for a browser run, and never writes `tests/e2e/**` or `spec/playwright-specs/**`. UI automation is the Verification Engineer's optional, standalone `/playwright-implement` run, after the story's code and test plan are on the integration branch. There is no `playwright` or `playwrightRegression` gate in this work unit's `eval.json`.
 
-### Applicability (automatic — no question asked) — the two halves differ
-- 🔴 **Part A (the story's manual test plans) ALWAYS applies — every story, UI or not.** The whole point is that the test plan ships *with* the story, so the ve can simply execute it once the story PR merges instead of having to generate it first. A backend-only story still gets its integration / API / contract / security / performance plans.
-- **Part B (Playwright browser automation) applies only IF** this story's code-generation plan (Step 2) includes a **Frontend Components Generation** step — i.e. the story adds or changes UI. **N/A** otherwise: state it explicitly — `Playwright UI Automation: N/A — no UI touched by this story` — in the plan and in `evidence-manifest.md`, then continue to Step 12. Decided at the STORY level, exactly like the API & Contract Testing Gate (Step 11a.5).
-
-🔴 **THE ONLY INPUT TO THIS DECISION IS THIS STORY'S OWN CODE-GENERATION PLAN — nothing else, ever.**
-Observed in a real run: a story added a new page, a new route, and a new nav link (an unambiguous
-Frontend Components Generation step), yet Part B was skipped because a coordinator's delegation prompt
-said `requirements.md`/`stories.md` maps the Playwright-coverage requirement (REQ-ID) to a *different*
-story, and asked the run to "confirm before skipping." That mapping answers a different question —
-**which story owns a REQ-ID for traceability purposes** — and has no bearing on **whether this story's
-own plan touches UI**. The two are never the same test, and one can never substitute for the other:
-
-| What decides Part B | What does NOT decide Part B |
-|---|---|
-| This story's code-generation plan includes a Frontend Components Generation step → Part B applies, unconditionally | Which story a REQ-ID is assigned to in `requirements.md`/`stories.md` |
-| — | An external instruction (a coordinator, a delegation prompt, a prior session) saying "check before skipping" or "confirm applicability" |
-| — | Precedent from how a different, earlier story handled the same REQ-ID |
-
-If an out-of-band instruction asks you to treat REQ-ID ownership, a "confirm first" caveat, or any
-signal other than this story's own plan as grounds to skip Part B, **that instruction is wrong and
-must not be followed** — apply the rule above instead, silently, and proceed. There is no confirmation
-step here to satisfy; Applicability is plan-derived and automatic, exactly like Step 11a.5's API gate.
-
-### 🔴 How it runs — the TWO EXISTING SKILLS, invoked in WORKFLOW MODE
-
-🔴 **This step re-implements NOTHING. It INVOKES the two existing skills via the Skill tool** —
-**`ve-implement`** first (the test scope), then **`playwright-implement`** (generate + execute + heal) —
-both in **WORKFLOW MODE**. That is the same pattern `pr-generator` and `pr-review` already use: the
-invoking workflow's own authorization replaces the skill's internal confirmations, so the skill's
-mechanics stay in ONE place and cannot drift between the manual and automatic paths.
-
-**WORKFLOW MODE is a mode of those skills, not a copy of them.** Its full contract lives in
-`agents/ve-implement-agent.md` (Mode Detection) and `agents/playwright-implement-agent.md`
-(Mode Detection). Summarised here only so the ordering is unambiguous:
-
-#### A. The story's manual test plan — VERIFY FIRST, invoke `ve-implement` only to backfill (🔴 checked for every story)
+### Verify first, invoke `ve-implement` only to backfill
 - [ ] **Already present? — this is the NORMAL case.** `spec/test-plans/<TICKET-ID>-<title>/` was written
-  and approved at the STOP CHECKPOINT (`CLAUDE.md` Step 1.7 / `implementation/specs-and-test-plans.md`)
-  and committed on the epic branch before any code existed. If the folder holds this story's manual test
-  steps — from that checkpoint, or from ve's own earlier `/ve-implement` run, in ANY state (approval
-  status is irrelevant here, only content matters) — reuse it as-is, record `Manual test plan: present
-  (approved at STOP CHECKPOINT)`, and skip straight to **B**. 🔴 Never regenerate or overwrite an
-  approved plan to match the code you just generated.
+  and approved at the STOP CHECKPOINT and committed on the integration branch before any code existed.
+  If the folder holds this story's manual test steps — from that checkpoint, or from the Verification
+  Engineer's own earlier `/ve-implement` run, in ANY state (approval status is irrelevant here, only
+  content matters) — reuse it as-is, record `Manual test plan: present (approved at STOP CHECKPOINT)`,
+  and continue to Step 12. 🔴 Never regenerate or overwrite an approved plan to match the code you just
+  generated.
 - [ ] **Otherwise — genuinely absent (legacy project, or a story added after the checkpoint) — invoke the
-  `ve-implement` skill** (Skill tool) to backfill it, announcing the backfill explicitly, passing this
-  work unit's story/ticket
-  and **`mode: workflow`**. In WORKFLOW MODE that skill:
+  `ve-implement` skill** (Skill tool — 🔴 invoke it, never re-implement it) to backfill it, announcing the
+  backfill explicitly, passing this work unit's story/ticket and **`mode: workflow`**. In WORKFLOW MODE
+  that skill (`agents/ve-implement-agent.md` Mode Detection):
   - takes the story **as given** — its story-picker is never presented,
   - 🔴 **does NOT cut a `ve/…` branch, does NOT push, and does NOT raise a PR** — it stays on this work
     unit's own branch, and its artifacts ride this work unit's own commit,
   - auto-confirms `test-plan.md` Step 2's applicability table and **skips its Step 6
     Approve/Request-Changes checkpoint**,
-  - still writes `spec/test-plans/<TICKET-ID>-<title>/` and its `runtime-artifacts/audit.md` entry exactly as usual,
+  - still writes `spec/test-plans/<TICKET-ID>-<title>/` and its audit entry exactly as usual,
     stamped `Mode: workflow (invoked by <workflow>) — no Verification Engineer approval, no Verification Engineer branch, no Verification Engineer PR`.
-- [ ] 🔴 This is **scope derivation, not ve's sign-off**. ve's own `/ve-implement` run remains the
-  authoritative, independently-scheduled track; if ve runs it later it finds the folder populated and
-  applies its normal refresh-or-stop convention. Never present this content as ve-approved.
+- [ ] 🔴 This is **scope derivation, not the Verification Engineer's sign-off**. The Verification
+  Engineer's own `/ve-implement` run remains the authoritative, independently-scheduled track; if it
+  runs later it finds the folder populated and applies its normal refresh-or-stop convention. Never
+  present this content as Verification Engineer-approved.
+- [ ] Proceed to Step 12 (and Code Review).
 
-#### B. Invoke `playwright-implement` — generate, execute, heal (🔴 UI stories only)
-
-> 🔴🔴 **TRIPWIRE — READ BEFORE YOU WRITE ANY FILE UNDER `tests/e2e/` OR `spec/playwright-specs/`.**
->
-> **Ask yourself: has a `Skill(playwright-implement)` tool call happened in THIS run?**
-> If the answer is no and you are about to `Write`/`Edit` a `.spec.*` file, **you are in the middle of
-> violating this gate — stop and invoke the skill instead.** There is exactly ONE permitted producer of
-> those files: the skill's own Planner and Generator subagents. Your own hand is never one of them, no
-> matter how faithful the spec looks.
->
-> 🔴 **Every one of these rationalisations is FORBIDDEN. Each was observed verbatim in a real run:**
->
-> | What the agent told itself | Why it is wrong |
-> |---|---|
-> | *"Playwright's official Test Agents aren't installed in this repo/session"* | **Installing them is this gate's own first step** (Step 0a), not a blocker to route around. Install, then HALT for the session restart. |
-> | *"Functionally equivalent — real browser, real app, real assertions"* | Equivalence is not the test. The Generator's locators come from the **live DOM it actually observed**; a hand-written spec's come from a document. That difference **is** the gate. |
-> | *"Same precedent as Stories 1.1/1.3"* · *"mirroring this pattern"* | A prior story that did this is a **defect to backfill**, never a licence. Precedent does not launder a violation. |
-> | *"Disclosed, not silent"* · a `NOTE:` comment in the file admitting the shortcut | **Disclosure is not mitigation.** A header confessing the gate was bypassed is *evidence of* the violation, not a remedy for it. |
->
-> 🔴 **Writing the spec yourself is a worse outcome than halting.** A halt is recoverable in one
-> command; a hand-authored spec merges, becomes the regression baseline, and nobody ever learns the
-> browser never verified those locators.
->
-> 🔴🔴 **THE CATCH-ALL — this rule closes the class, not just the known cases.**
-> **ANY reason whatsoever that you cannot invoke the real Playwright subagents resolves to HALT.
-> There is no reason that resolves to "write them myself".** Not the ones already observed (agents not
-> installed · MCP server not connected · running inside a fork or subagent with no Agent tool), and not
-> whatever new one you are looking at right now. If you find yourself constructing a justification for
-> why *this particular* blocker is the exception — that construction **is** the violation. Stop, state
-> the blocker plainly, and halt.
->
-> 🔴 **EXECUTION-CONTEXT PRECONDITION — check this BEFORE anything else in Part B.** This gate requires
-> a context that can call the **Agent tool**, because `subagent_type: "playwright-test-{planner,
-> generator,healer}"` are Agent-tool invocations. **A fork, or any subagent whose instructions say
-> "do NOT spawn subagents / you ARE the fork, execute directly", cannot run this gate at all.** Detect
-> it, and HALT with:
->
-> ```
->  PLAYWRIGHT GATE CANNOT RUN IN THIS EXECUTION CONTEXT
->
->    Work unit: [Story N.M / TICKET-ID] — [title]     Branch: [branch]
->    Blocker:   this run is a [fork | restricted subagent] and cannot call the Agent tool, which is
->               required to invoke Playwright's own Planner/Generator/Healer subagents.
->               This is NOT fixable by installing anything or restarting the session.
->
->    Nothing is lost. [gates already passed] are recorded in runtime-artifacts/audit.md.
->       No commit, no push, no PR, no tracker change. NO specs were hand-authored.
->
-> NEXT ACTIONS:
->    1.  Re-run this work unit's Playwright gate from a NORMAL session or a general-purpose agent —
->        one that can call the Agent tool.
->    2.  Or re-invoke [dev-implement | bug-fix-implement | enhancement-implement] outside the fork;
->        it resumes at this gate, skipping every gate already recorded as passed.
-> ```
->
-> 🔴 **Never continue the run past this halt, and never "disclose and proceed".** A backend-only work
-> unit is unaffected — Part B is `N/A` for it and the fork can complete normally.
-> 🔴 **Exception — `dev-implement` and `pr-fix` never run in a fork at all.** Their Single-Session
-> Execution rule (`workflows/dev-implement.md` Step 1.7, `workflows/pr-fix.md` Step 0) halts a
-> forked run before any work unit is touched, backend-only included, so for those two workflows this
-> precondition is already settled before Part B is reached.
-- [ ] **Invoke the `playwright-implement` skill** (Skill tool), passing the same story and
-  **`mode: workflow`**. In WORKFLOW MODE that skill:
-  - takes the story **as given** — its story-picker is never presented,
-  - 🔴 **skips its Step 2a both-merges gate** — nothing has merged yet *by design*; that gate exists for
-    the post-merge standalone path, and here the code under test is in this very working tree,
-  - 🔴 **skips its Step 3 integration-branch resolution/checkout** — it works on this work unit's branch
-    and never switches branches mid-run,
-  - runs its Step 5 **Prerequisite Gate** (`playwright-automation.md` Step 0) as a **real blocking
-    gate**: 🔴 **anything missing is INSTALLED automatically, announced — never skipped.** Missing
-    `@playwright/test`, missing `.claude/agents/playwright-test-*`, or a missing `.mcp.json` entry
-    means run `npm i -D @playwright/test && npx playwright install` and/or `npx playwright init-agents
-    --loop=claude` on the spot. In workflow mode "confirm-first" resolves to **proceed**, never to
-    "unavailable". 🔴 **If `init-agents` had to run, the gate HALTS there and asks for a Claude Code
-    session restart** (Step 0a's verbatim block) — the `playwright-test` MCP server it just registered
-    is not connected in this session, so the Planner/Generator/Healer cannot run. This is a
-    **sanctioned hard stop, not an approval prompt** — the run physically cannot continue, exactly like
-    a Retry-Limit halt. Nothing is committed, pushed or transitioned. It records
-    `PAUSED — Playwright agents installed — resume at <this gate's step> — <timestamp>` in the work unit's
-    `runtime-artifacts/stories/<key>/state.md` `## Progress`; on restart the user types the same keyword and
-    the workflow's resume check finds that record and resumes **at this gate**, skipping every gate already
-    recorded as passed in the work unit's audit trail. When everything was already installed,
-    no pause happens at all. It then **auto-derives and applies** the **Seed Test Gate** (Step 0d)
-    instead of asking,
-  - **starts the app locally itself** (Bash, backgrounded) using the project's own start command —
-    resolved repo script → direct invocation, never invented — polls the readiness URL until it
-    answers, and tears the server down on every exit path,
-  - invokes the **real Planner** (Agent tool, `subagent_type: "playwright-test-planner"`),
-    🔴 **auto-approves its plan — its Step 7 Approval Gate is SKIPPED**,
-  - invokes the **real Generator** per scenario, **sequentially** (`subagent_type:
-    "playwright-test-generator"`) — never in parallel — then runs the Cross-Scenario Consistency Pass,
-  - **executes via Bash, `--headed` exactly as the standalone path does**:
-    `npx playwright test tests/e2e/<story-slug>/ --headed` — 🔴 this is the developer's own machine and
-    watching the browser exercise the story just built is the point. **Headless belongs to CI alone**
-    (a runner has no display); it is never a local default. The one local fallback is a machine with
-    genuinely no display, proven by the failure, recorded as `"headed": false` with the real reason,
-  - invokes the **real Healer** (`subagent_type: "playwright-test-healer"`) on any failure, never
-    intervening in its internal loop,
-  - 🔴 **skips its Step 12 Push Gate and direct push to the integration branch** — the generated
-    artifacts ride this work unit's own commit instead (Section D / the commit step of the invoking
-    workflow).
-- [ ] **Record the resolved `startCommand` and `readinessUrl`** into this work unit's manifest fragment
-  (`ci.playwright`, `common/eval-framework.md` Section 1) — this is exactly what lets CI's trust-gate
-  run reuse the identical commands instead of re-deriving them.
-- [ ] 🔴 **A `test.fixme()` outcome does NOT satisfy this gate.** In the standalone skill a `test.fixme()`
-  is merely flagged as a candidate defect for a human to triage later; **inside this automatic gate it
-  means the Healer's own analysis found a real app defect — fix the application code in this same run**
-  (exactly the class of issue this gate exists to catch before code review) and re-run, rather than
-  deferring it.
-- [ ] **If the Seed Test Gate cannot be confidently derived** (ambiguous role, several distinct login
-  flows, no anchor precondition), that is a one-time blocking input gap, not a retry-loop failure: HALT
-  with a short, clearly-labeled report naming exactly what `tests/e2e/seed.spec.ts` needs, and resume
-  this step once the user supplies it — do **not** consume an SH-LOOP-11 attempt on it.
-
-### Self-healing — SH-LOOP-11, capped at 3 attempts (SH-1)
-- [ ] **Verification that must pass**: every generated Playwright spec passes with zero `test.fixme()` outcomes.
-- [ ] Below that → **SH-LOOP-11**: diagnose the root cause (SH-7), fix the application code (never the generated spec, unless the spec itself is provably wrong against the approved acceptance criteria), re-run Step 4, re-heal if needed. Capped at 3 remediation attempts (SH-1); on exhaustion apply SH-4 — **HALT and emit the Retry-Limit Report**, naming the failing spec(s) and the Healer's own diagnosis.
-- [ ] 🔴 **Forbidden shortcuts** (SH-6): marking a genuinely failing spec `test.fixme()` to force a pass, deleting or weakening a generated assertion, or silently narrowing the Planner's scope to dodge a hard scenario.
-
-### Evidence and scorecard integration
-- [ ] **Capture PROOF artifacts** to `reports/playwright-test-evidence/story-[N.M]/`:
-  - [ ] **`playwright-test-run.log`** — the raw, unedited stdout/stderr of the final passing run.
-  - [ ] **`playwright-test-report.json`** — the **mandatory machine-readable** report (`npx playwright test tests/e2e/<story-slug>/ --reporter=line,json:reports/playwright-test-evidence/story-[N.M]/playwright-test-report.json`). A raw log alone does NOT satisfy the gate.
-  - [ ] **`evidence-manifest.md`** — a table: manual TC → generated spec → result, plus the Cross-Scenario Consistency Pass notes and the Healer outcomes (healed vs. fixed-in-app).
-- [ ] 🔴 **PROVENANCE CHECK — the gate is not satisfied until this passes.** Before recording the result, assert all three; any failure is **ERROR**, never PASS, never `N/A`:
-  1. A **`Skill(playwright-implement)` invocation exists in this run's transcript and in `runtime-artifacts/audit.md`.** No invocation → the specs were not agent-generated → ERROR.
-  2. **`spec/playwright-specs/<story-slug>.md` exists** — the real Planner's own `planner_save_plan` output. A `tests/e2e/<story-slug>/` directory with **no corresponding Planner plan** is the signature of hand-authored specs: the Generator cannot run without a plan, so specs-without-a-plan means neither agent ran. 🔴 **Scope: THIS work unit's own slug, in THIS run** — the plan was written minutes ago by the skill invocation asserted in (1), so it is always live here. Do **not** generalise this into a sweep over every `tests/e2e/*` directory: `spec/` is cycle-scoped and an earlier closed cycle's plan lives in its archive, not live (`common/directory-structure.md`). The cross-cycle case is `implementation/code-review.md`'s provenance check, which resolves live-or-archive.
-  3. **No generated file contains a disclosure comment** admitting it was hand-written / not agent-generated (grep the new specs for `hand-authored`, `not agent-generated`, `agents are not installed`, `precedent`). Such a comment is a **confession of the violation**, not a mitigation — its presence is itself the ERROR.
-  🔴 On any failure: delete the hand-authored artifacts, install the agents if needed, and run the gate properly via the skill. Never record a `playwright` gate result produced by hand.
-- [ ] **Write into `eval.json`'s `gates` block under id `"playwright"`** (per `common/eval-framework.md` Section 1/6) — `PASS`/`FAIL`/`N/A` with scenario counts — so `eval-summary.md`, the PR body, and the downstream **CI Attestation gate (SH-LOOP-10)** all pick it up automatically, exactly like every other gate.
-- [ ] **Commit the generated artifacts** (`tests/e2e/<story-slug>/`, `spec/playwright-specs/<story-slug>.md`, any confirmed `tests/e2e/seed.spec.ts` addition, `playwright.config.ts` if newly created, `spec/test-plans/<TICKET-ID>-<title>/automation-summary.md`) together with the rest of the story's changes — there is no separate branch or push here; this is part of the SAME story branch and the SAME commit as everything else in this Part.
-- [ ] Proceed to Step 11e (the Playwright E2E Regression Gate) only once the diff is clean (zero failing specs).
-
-
-## Step 11e: 🧪 Playwright E2E Regression Gate (MANDATORY — after Step 11d, before Code Review, same run)
-
-**Purpose**: Step 11d proves **this work unit's own** new Playwright specs pass. It proves nothing about the specs every *earlier* work unit already shipped. This step closes that gap — it is the **UI counterpart of the Full Regression gate (Step 11b)**, and it works exactly the same way: photograph the existing `tests/e2e/` suite before any code is written, re-run it after, and attribute only the difference.
-
-### 🔴 Applicability — EVERY work unit, UI or not (deliberately unlike Step 11d)
-
-| Gate | Applies when | Scope |
-|---|---|---|
-| **Step 11d part B** (UI Automation) | the plan has a **Frontend Components Generation** step | this unit's OWN new specs |
-| **Step 11e** (this gate) | **ALWAYS** — every work unit | the ENTIRE existing `tests/e2e/` suite |
-
-🔴 **Do NOT skip this gate because the work unit touches no UI.** A backend handler, a changed API response shape, a renamed field, a migration, a config or dependency bump is precisely what breaks an already-shipped browser flow — and it is the case a UI-only gate can never catch. This is the same reasoning that makes Step 11b run the whole repo suite rather than only the story's own tests.
-
-**`N/A` — exactly one legitimate reason**, recorded explicitly (never a silent skip): `tests/e2e/` contains
-no spec files at all — no earlier work unit generated any (which includes a project with no UI), so there is
-nothing to regress. 🔴 Specs that exist but a runner or browsers not installed on this machine is **not** N/A —
-the invoking workflow installs them at its baseline step and runs the sweep.
-
-### The baseline comes first — and it is captured by the invoking workflow
-
-The pre-change run is **not** part of this step. Like Step 11b's `baseline-regression.log`, it is captured on the freshly cut branch **before any code is generated**, by whichever workflow invoked this file:
-
-| Workflow | Baseline captured at |
-|---|---|
-| `dev-implement` | Step 1.5 Item 4.7 |
-| `bug-fix-implement` | Step 3 Item 6 |
-| `enhancement-implement` | Step 10 (Baseline Playwright E2E Regression Run) |
-
-🔴 **ORDER IS LOAD-BEARING — baseline → generate code → Step 11d → Step 11e → diff.** A baseline captured *after* code generation measures the changed system and can never attribute anything; a work unit would then be blamed for, or credited with hiding, every pre-existing UI failure. This is the same ordering rule Step 11b and Step 11c already carry.
-
-### Mechanics
-
-- [ ] **Start the application the same way Step 11d does** — the `startCommand` / `readinessUrl` recorded in `tests/.evals/config.json` `ci.playwright` (plus `backendStartCommand` / `backendReadinessUrl` when the local gate needed frontend and backend as two separate processes), resolved from the project's own scripts — 🔴 **never invented**. Poll readiness before running, and **tear the server(s) down on every exit path**, including failure.
-- [ ] **Run the ENTIRE `tests/e2e/` suite** — every earlier work unit's specs **plus** any this unit just generated in Step 11d — not a subdirectory, not a filtered subset:
-      `npx playwright test tests/e2e/ --reporter=line,json:reports/playwright-test-evidence/<key>/regression/playwright-regression-report.json`
-- [ ] 🔴 **Run headless — a deliberate, narrow carve-out from Step 11d's `--headed` rule.** That rule exists because a developer is meant to *watch* the browser exercise the story they just built. This is a bulk sweep of dozens of already-approved specs that nobody watches, so headless is the default here, for speed. Record `"headed": false, "reason": "bulk regression sweep, not the authoring gate"` in the evidence manifest. (A developer may still run it `--headed` by hand when diagnosing.)
-- [ ] **Diff against the baseline.** Only specs that were **green at baseline and are red now** count against this gate.
-- [ ] **NEW failures → this work unit broke them, so this work unit fixes them**, within THIS SAME run; then re-run and re-diff until the diff is clean. **This is SH-LOOP-13 — capped at 3 remediation attempts (SH-1). On exhaustion apply SH-4: HALT and emit the Retry-Limit Report**, naming each newly-red spec and what the three attempts changed.
-- [ ] **Failures already red at baseline** → not this work unit's doing. They are already logged in `playwright-baseline-regression.log`; ignore them and do not block on them.
-- [ ] 🔴 **FIX THE APPLICATION CODE, NEVER THE SPEC.** A generated Playwright spec encodes an acceptance criterion an earlier work unit shipped and a human approved. **Deleting it, marking it `test.fixme()` or `.skip`, loosening a locator, widening a timeout, or narrowing an assertion to make it green is the exact analogue of deleting a failing unit test and is equally forbidden (SH-6).** A spec changes only when the acceptance criterion it encodes genuinely changed — and then the AC, `requirements.md` and the tracker item are amended together and the reconciliation is logged.
-- [ ] **Capture PROOF artifacts** to `reports/playwright-test-evidence/<key>/regression/`:
-  - [ ] **`playwright-baseline-regression.log`** — the raw pre-change run (written by the invoking workflow's baseline step)
-  - [ ] **`playwright-baseline-report.json`** — the **mandatory machine-readable** baseline report
-  - [ ] **`playwright-full-regression.log`** — the raw post-change run
-  - [ ] **`playwright-regression-report.json`** — the **mandatory machine-readable** post-change report. A raw log alone does NOT satisfy this gate.
-  - [ ] **`evidence-manifest.md`** — baseline vs post-change pass/fail counts, the exact commands, `headed` + its reason, the app start commands used, and each NEW failure with what broke and how it was fixed
-- [ ] **Write the result into `eval.json`'s `gates` block under id `"playwrightRegression"`** — `PASS` / `FAIL` / `N/A` with the new-failure count — so `eval-summary.md`, the PR body and the completion message all pick it up like every other gate.
-- [ ] 🔴 **This is a LOCAL-ONLY gate, exactly like `regression` and `apiContract`** (`common/eval-framework.md` Section 5): CI has no baseline to diff against, so **`playwrightRegression` is NEVER added to `ci.gates`** — a declared gate with no result is an ERROR there. CI's own `playwright` job stays what it already is: a trust gate that re-executes the specs, with no attribution.
-- [ ] Proceed to Step 12 (and Code Review) only once the diff is clean (zero NEW failing specs).
 ## Step 12: Update Progress
 - [ ] Mark the completed step as [x] in the code generation plan
 - [ ] **Story Tracker**: ensure the story being implemented is `In Development` with a `Start` date; update `Recorded` to the current timestamp in `runtime-artifacts/aire-state.md`
@@ -629,7 +447,7 @@ Full layout: `common/directory-structure.md`. The five roots and what belongs in
 | Root | Contents |
 |---|---|
 | **`src/`** | ALL application code — greenfield AND brownfield |
-| **`tests/`** | `unit/` · `behavior/` ( Gherkin step definitions) · `e2e/` (Playwright) |
+| **`tests/`** | `unit/` · `api/` · `behavior/` ( Gherkin step definitions) · `e2e/` (Playwright — written only by the standalone `/playwright-implement`, never by this stage) |
 | **`spec/`** | Specs + docs ONLY. 🔴 Never a source file. |
 | **`reports/`** | Generated test/eval evidence ONLY (unit / behavior / api-contract / eval) |
 | **`tests/.evals/`** | `config.json`, `rubrics/`, `scripts/` |
@@ -687,30 +505,11 @@ Full layout: `common/directory-structure.md`. The five roots and what belongs in
 - 🔴 **NEVER weaken a checklist assertion to force a pass** — a genuinely inapplicable item is marked N/A with a stated reason, not silently dropped or asserted away.
 - 🔴 This gate is **separate from and does not replace** ve's `/ve-implement` MANUAL API/Contract test *steps* (`spec/test-plans/<TICKET-ID>-<title>/api-test-steps.md` / `contract-test-steps.md`) — those remain ve's independent black-box design/validation layer.
 
-### Step 11d Rules — Test Plans (ALWAYS) + Playwright UI Automation (UI stories only)
-- 🔴 **THE TWO HALVES HAVE DIFFERENT APPLICABILITY — never skip the whole step because the story has no UI.** **Part A (the story's manual test plan) is CHECKED for EVERY story**, UI or not — it was authored and approved at the STOP CHECKPOINT, so the normal case is a presence check; `ve-implement` is invoked in WORKFLOW MODE only to backfill a genuinely absent plan, announced. Either way the ve simply executes the plan after the story PR merges instead of generating it first. **Part B (`playwright-implement` → browser automation) runs only when the story's plan includes a Frontend Components Generation step.**
-- 🔴 **APPLICABILITY IS PLAN-DERIVED, AUTOMATIC**: never ask the user whether either half applies. If the plan has no Frontend Components Generation step, Part B is N/A — state that explicitly, and still complete Part A.
-- 🔴 **INVOKE THE SKILLS, NEVER RE-IMPLEMENT THEM** — `ve-implement` then `playwright-implement`, both via the Skill tool in **WORKFLOW MODE**. `ve-implement` and `playwright-implement` ARE real Claude skills (unlike `code-review`/`remediate`, which are rule files and must never be invoked as skills). Their mechanics live in `agents/ve-implement-agent.md`, `agents/playwright-implement-agent.md`, `implementation/test-plan.md` and `extensions/testing/playwright-automation/playwright-automation.md` — this gate only supplies the story and the mode.
-- 🔴 **REAL PLAYWRIGHT AGENTS ONLY** — the Planner, Generator and Healer invoked inside that skill are Playwright's own installed subagents. Never re-implement their logic.
-- 🔴 **NOT INSTALLED IS AN ERROR TO FIX, NOT A GAP TO DISCLOSE.** Missing Playwright, missing `.claude/agents/playwright-test-*`, or a missing `.mcp.json` entry → **install them** (`npm i -D @playwright/test && npx playwright install`, `npx playwright init-agents --loop=claude`) and continue. Same verdict `common/eval-framework.md` Section 2.5.2 already gives `"gitleaks not installed"`: **ERROR, never `N/A`**. The one genuine blocker is the newly-written `.mcp.json` not yet loaded into this session — that is a **HALT + restart**, never a fallback.
-- 🔴 **A HAND-AUTHORED `.spec.ts` IS NOT A GATE RESULT.** If the real Generator subagent did not write it, this gate did not pass — exactly as `eval-framework.md` Section 2.5.2 rules a hand-written claim out for D1–D7: *the gate is the TOOL's output, or it is ERROR; there is no third option.* Hand-writing specs from the manual test plan and disclosing it as a known gap produces tests generated from nobody's observation of the live DOM, with locators verified against nothing — the exact failure the Planner/Generator exist to prevent. 🔴 **And a previous story's disclosed gap is never precedent** — it is a defect to backfill, not a pattern to follow.
-- 🔴 **WORKFLOW MODE SKIPS APPROVALS AND GIT, NOTHING ELSE** — no story-picker, no ve approval checkpoint, no Planner-plan approval gate, no both-merges gate, no `ve/…` branch, no push, no PR, no Push Gate. Every *verification* the skills perform still runs, and every generated spec must still actually PASS — auto-approval is not a shortcut on correctness.
-- 🔴 **LOCALLY STARTED, `--headed`, TORN DOWN** — the app is started by this gate itself (never assumed already running), executed **`--headed` exactly as the standalone skill does** (this is the developer's machine; the browser is meant to be visible), and torn down on every exit path. **Headless is CI's alone**, because a runner has no display — never a local default. The one local fallback is a machine with genuinely no display, proven by the failure and recorded as `"headed": false` with the real reason in the evidence manifest.
-- 🔴 **`test.fixme()` NEVER SATISFIES THIS GATE** — a healed-but-still-`fixme()`'d spec means a real app defect; fix it in this same run (SH-LOOP-11), never defer it.
-- 🔴 **PROOF ARTIFACTS (MANDATORY)**: `playwright-test-run.log`, the **mandatory machine-readable** `playwright-test-report.json`, and `evidence-manifest.md` to `reports/playwright-test-evidence/story-[N.M]/`. The result is also written into `eval.json`'s `gates.playwright` so CI's later trust-gate re-run is cross-checked automatically by the CI Attestation gate.
-- 🔴 CI's own Playwright step is a **trust gate that re-executes the same specs post-PR — headless only because a runner has no display, and never the first execution**. A CI-only Playwright failure on a gate that passed here is a CI provisioning/manifest defect (missing start command, missing browsers, wrong readiness URL), handled exactly like every other CI-vs-local mismatch — never grounds to re-litigate the local result.
+### Step 11d Rules — Test Plan Verification (ALWAYS)
+- 🔴 **CHECKED FOR EVERY STORY, UI or not** — the plan was authored and approved at the STOP CHECKPOINT, so the normal case is a presence check; `ve-implement` is invoked in WORKFLOW MODE only to backfill a genuinely absent plan, announced. Either way the Verification Engineer simply executes the plan after the story PR merges instead of generating it first.
+- 🔴 **INVOKE THE SKILL, NEVER RE-IMPLEMENT IT** — `ve-implement` is a real Claude skill (unlike `code-review`/`remediate`, which are rule files and must never be invoked as skills). Its mechanics live in `agents/ve-implement-agent.md` and `implementation/test-plan.md`; this step only supplies the story and the mode.
+- 🔴 **NO PLAYWRIGHT IN CODE GENERATION.** Never invoke `playwright-implement`, never install Playwright or its test agents, never write `tests/e2e/**` or `spec/playwright-specs/**`, and never record a `playwright` / `playwrightRegression` gate from this stage. UI automation is the Verification Engineer's optional standalone `/playwright-implement` run.
 
-
-### Step 11e Rules — Playwright E2E Regression (EVERY work unit, UI or not)
-- 🔴 **APPLIES TO EVERY WORK UNIT — deliberately unlike Step 11d.** Step 11d part B is UI-only and scoped to this unit's OWN new specs; Step 11e is the UI counterpart of the Full Regression gate and runs the **entire** `tests/e2e/` suite for **every** work unit. **Never skip it because the unit touches no UI** — a backend, API, schema, config or dependency change is exactly what breaks an already-shipped browser flow, and nothing else in the run would catch it.
-- 🔴 **BASELINE BEFORE CODE, FULL RUN AFTER, THEN DIFF** — the same three-beat shape as Step 11b: the invoking workflow captures the baseline on the freshly cut branch before any code is generated (`dev-implement` Step 1.5 Item 4.7, `bug-fix-implement` Step 3 Item 6, `enhancement-implement` Step 10), this step re-runs and diffs. A baseline taken after code generation is worthless and blames this unit for pre-existing failures.
-- 🔴 **ONLY THE DELTA COUNTS.** Green at baseline + red now = this unit's problem, fixed in the same run under **SH-LOOP-13** (3 attempts, then SH-4 HALT + Retry-Limit Report). Red at baseline = pre-existing debt: logged, ignored, never blocking.
-- 🔴 **FIX THE CODE, NEVER THE SPEC.** No deleting, no `test.fixme()`, no `.skip`, no loosened locator, no widened timeout, no narrowed assertion to force an existing spec green — the analogue of deleting a failing unit test, and equally forbidden (SH-6). An approved spec changes only when its acceptance criterion genuinely changed, amended together with the AC, `requirements.md` and the tracker item, and logged.
-- 🔴 **HEADLESS IS THE DEFAULT HERE** — a narrow, reasoned carve-out from Step 11d's `--headed` rule, which exists so the developer can watch the specs being authored for the story in hand. A bulk sweep of already-approved specs is not that. Record `"headed": false` with the reason in the evidence manifest.
-- 🔴 **THE APP IS STARTED AND TORN DOWN BY THIS GATE**, using the same `ci.playwright` start/readiness commands Step 11d resolved from the project's own scripts — never invented, never assumed already running.
-- 🔴 **PROOF ARTIFACTS (MANDATORY)**: `playwright-baseline-regression.log`, `playwright-baseline-report.json`, `playwright-full-regression.log`, the **mandatory machine-readable** `playwright-regression-report.json`, and `evidence-manifest.md` — all under `reports/playwright-test-evidence/<key>/regression/`. Every figure reported downstream MUST match them; a hand-written claim is never a gate result.
-- 🔴 **`N/A` has exactly one legitimate reason** — `tests/e2e/` holds no specs at all (no earlier work unit generated any). Recorded explicitly with the reason; a missing runner or browser is installed, never a reason for N/A. 🔴 Never `N/A` because *this* unit has no UI, and never reported as a pass.
-- 🔴 **LOCAL-ONLY GATE** — `playwrightRegression` goes into `eval.json`'s `gates` block but is **never** added to `ci.gates`, for the same reason `regression` and `apiContract` are local-only: CI has no baseline, so it cannot compute the attribution this gate exists for.
 ### Automation Friendly Code Rules
 When generating UI code (web, mobile, desktop), ensure elements are automation-friendly:
 - Add `data-testid` attributes to interactive elements (buttons, inputs, links, forms)
@@ -727,9 +526,7 @@ When generating UI code (web, mobile, desktop), ensure elements are automation-f
 - Unit test coverage ≥ `unitTestCoverageMin` for all new/changed code (measured and iterated to target in the same run)
 - **Proof artifacts saved** to `reports/unit-test-evidence/story-[N.M]/` — `unit-test-run.log` (raw runner output), `coverage-report.*` (the coverage tool's **mandatory** machine-readable report: lcov/xml/json/HTML), and `evidence-manifest.md` — with the reported X/X passing + coverage % matching those artifacts. Missing the coverage-report file = gate not satisfied
 - **API & Contract Testing Gate applied when the story touches an API layer** — every new/changed endpoint has a passing automated test for each applicable checklist item (functional, response code, role-based authorization, error-response validation, request validation, response contract validation), with proof artifacts saved to `reports/api-contract-test-evidence/story-[N.M]/`; explicitly marked N/A (with reason) when the story touches no API layer
-- **The story's manual test plan exists at `spec/test-plans/<TICKET-ID>-<title>/`** — normally the one approved at the STOP CHECKPOINT (`CLAUDE.md` Step 1.7) and verified at Step 11d Part A, otherwise backfilled there via `ve-implement` in WORKFLOW MODE or reused from ve's own earlier run — so the ve can execute it as soon as the story PR merges
-- **Playwright UI Automation applied when the story touches UI** — every generated Playwright spec passes (zero `test.fixme()` outcomes) `--headed` against a locally started instance of the app, with proof artifacts saved to `reports/playwright-test-evidence/story-[N.M]/` and the result written into `eval.json`'s `gates.playwright`; explicitly marked N/A (with reason) when the story touches no UI
-- **Playwright E2E regression run for EVERY work unit, UI or not** — the entire existing `tests/e2e/` suite captured as a baseline before any code (invoking workflow) and re-run after Step 11d, with **zero NEW failing specs** versus that baseline; proof artifacts saved to `reports/playwright-test-evidence/story-[N.M]/regression/` and the result written into `eval.json`'s `gates.playwrightRegression`; explicitly marked N/A (with reason) only when `tests/e2e/` holds no specs at all
+- **The story's manual test plan exists at `spec/test-plans/<TICKET-ID>-<title>/`** — normally the one approved at the STOP CHECKPOINT (`CLAUDE.md` Step 1.7) and verified at Step 11d, otherwise backfilled there via `ve-implement` in WORKFLOW MODE or reused from the Verification Engineer's own earlier run — so the Verification Engineer can execute it as soon as the story PR merges
 - Post-implementation Story Tracker update applied (status + timestamps); tracker phase prompt presented and applied if confirmed for non-LOCAL tracked stories
 - Deployment artifacts generated
 - Story ready for build and verification

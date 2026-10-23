@@ -50,8 +50,11 @@ in during Requirements Analysis. An extension with no `*.opt-in.md` is always en
 - **Security Baseline is ALWAYS mandatory** — load `extensions/security/baseline/security-baseline.md`
   at workflow start for EVERY project, enforce as blocking. NEVER ask whether security applies; ignore
   any legacy opt-out in `## Extension Configuration`.
-- **Playwright Test Automation is ALWAYS mandatory** — load
-  `extensions/testing/playwright-automation/playwright-automation.md`; record `Enabled = Yes`.
+- **Playwright Test Automation is STANDALONE ONLY** — do NOT load
+  `extensions/testing/playwright-automation/playwright-automation.md` at workflow start (the one
+  exception to the no-opt-in-file rule above). No implement workflow (`dev-implement`,
+  `bug-fix-implement`, `enhancement-implement`, or those reusing their gate chain) runs Playwright
+  automation; it loads only when the Verification Engineer runs `/playwright-implement`.
 - Enabled extension rules are **hard constraints**; non-compliance is a **blocking finding**. Rules
   irrelevant to the current stage are **N/A** (not blocking). Before enforcing any extension at ANY
   stage, check `Enabled` in `## Extension Configuration`; skip disabled ones and log the skip. Default
@@ -545,7 +548,8 @@ self-healing entries add `**SH-LOOP**:`, `**Root cause**:` and `**Verification**
 - **`src/`** — ALL application code, greenfield AND brownfield. If a brownfield repo keeps code
   elsewhere, record that root ONCE as `## Code Root` in `runtime-artifacts/aire-state.md` and treat it
   as `src/`. 🔴 Never a second code location; never mass-move an existing tree.
-- **`tests/`** — `unit/`, `behavior/` (Gherkin step definitions), `e2e/` (Playwright)
+- **`tests/`** — `unit/`, `api/`, `behavior/` (Gherkin step definitions), `e2e/` (Playwright — written
+  only by the standalone `/playwright-implement`, never by an implement workflow)
 - **`spec/`** — specs/docs ONLY, 🔴 never a source file. `behavior.feature` at its root (**once per
   cycle, never per story**) plus five subfolders: **`plans/`** — flat planning/design docs
   (`architecture.md`, `atlas-deep-dive.md` + the flat RE docs, `requirements.md`, `stories.md`,

@@ -18,7 +18,7 @@ A **work-unit PR that a human rejected** — a `[STORY]` PR into the epic branch
 4. **re-runs the COMPLETE gate chain of the workflow that originally built the work unit**
    (`dev-implement` / `bug-fix-implement` / `enhancement-implement`) — baselines, unit tests +
    coverage, Gherkin B1/B2/B3, API & contract, test placement, full regression, static D1–D7,
-   Playwright UI + Playwright E2E regression, automated Code Review with the Security Baseline pass and
+   test plan verification, automated Code Review with the Security Baseline pass and
    the J1/J2 judge gates, auto-remediation, manifest reconciliation, CI preflight and CI attestation,
 5. pushes the fix **to the same PR** (never a new PR, never a force-push), refreshes the PR's eval
    scorecard, replies to every comment it acted on, re-requests review, and hands back.
@@ -112,8 +112,7 @@ There are exactly **three** sanctioned stops — none of them an approval of the
    human decision the framework must not make alone. Asked once, as one inline block.
 2. **Step 2.6 Archived-cycle recovery** — asked only when the bug/enhancement cycle archive has already
    run on the PR's head branch.
-3. **Retry-limit halts (SH-4)** and the **Playwright agent-install restart pause** inherited from the
-   owning workflow — halts, not questions.
+3. **Retry-limit halts (SH-4)** inherited from the owning workflow — halts, not questions.
 
 A user who volunteers a correction mid-run is an **interrupt** — apply it, record it in the Feedback
 Ledger and `runtime-artifacts/audit.md`, and continue. Never turn it into a standing gate.
@@ -132,19 +131,17 @@ that workflow's gates:
   coding, every gate, the Code Review pass, the J1/J2 judging, remediation, the commit, the push, the PR
   update and the replies are all done **by this session's own tool calls**.
 - The `agents/*.md` files this workflow loads (`code-security-review-agent.md`,
-  `ve-implement-agent.md`, `playwright-implement-agent.md`) are **procedures executed inline in this
+  `ve-implement-agent.md`) are **procedures executed inline in this
   session** — never spawned as subagents. The Code Review pass is kept read-only **by discipline**
   (no `Edit`/`Write` on `src/**` or `tests/**` during the review pass), never by spawning a read-only
   subagent.
-- Skills this workflow invokes (`ve-implement`, `playwright-implement`, `pr-review`) run **inline**
+- Skills this workflow invokes (`ve-implement`, `pr-review`) run **inline**
   via the Skill tool.
 - Long test suites run through this session's own shell. A command may run in the background only if
   this session waits for it to finish before advancing — a gate never advances on a result it has not
   read.
-- 🔴 **The ONE permitted Agent-tool use** is Playwright's own official **Planner / Generator / Healer**
-  test agents, invoked by the `playwright-implement` skill inside the Playwright UI gate, **one call at
-  a time, synchronously**, with this session waiting on each. They are Playwright's installed test
-  agents, not a fork of this workflow, and no other part of the run may be delegated to them.
+- 🔴 **There is NO permitted Agent-tool use in this run** — like the owning workflows, `pr-fix` runs
+  no Playwright automation and never invokes Playwright's test agents.
 - **If this run is itself executing inside a fork or a subagent**, Step 0 HALTS it before anything is
   read or changed.
 
@@ -161,15 +158,15 @@ Resolve the rule details directory (`aire-workflow/`) and load:
   `workflows/bug-fix-implement.md` or `workflows/enhancement-implement.md`. Its gate steps are
   executed **by reference** at Step 11 and Step 13; its Self-Healing Retry Policy (SH-1 … SH-7) and its
   Retry-Limit Report bind this workflow too.
-- `implementation/code-generation.md` (Guardrail — Generation Phase Rules, Steps 11a–11e),
+- `implementation/code-generation.md` (Guardrail — Generation Phase Rules, Steps 11a–11d),
   `workflows/code-review.md` + `implementation/code-review.md`, `workflows/remediate.md` +
   `implementation/remediate.md`
 - When `## CI/CD Configuration` records `Enabled: Yes`: `common/ci-pipeline-generation.md`
   Sections 4.0d, 4.0f, 4.0i and 6.6
-- 🔴 The three Playwright non-negotiables in `workflows/dev-implement.md` ("MANDATORY: Rule Details
-  Loading") apply unchanged: only the `playwright-implement` skill's own subagents may write
-  `tests/e2e/**` or `spec/playwright-specs/**`; missing agents mean INSTALL, then restart; disclosing a
-  shortcut does not permit it.
+- 🔴 **No Playwright automation** — exactly as the owning workflows: `pr-fix` never installs Playwright,
+  never runs an E2E sweep, never invokes `playwright-implement` and never edits `tests/e2e/**` or
+  `spec/playwright-specs/**`. A review comment that asks for browser automation is answered by pointing
+  to the Verification Engineer's standalone `/playwright-implement`.
 
 ---
 
@@ -464,7 +461,7 @@ These edits ride this round's commit.
 The gates diff against a baseline, and that baseline must describe the target branch as it is now.
 
 - **Reuse** the work unit's existing baseline evidence (`baseline-regression.log`,
-  `static/baseline/`, `playwright-baseline-regression.log`, committed on the head branch under
+  `static/baseline/`, committed on the head branch under
   `reports/`) **only if** Step 3 merged nothing **and** `git merge-base origin/<target> HEAD` equals the
   base SHA recorded in the original run's evidence manifest. Record `baseline: reused (<sha>)`.
 - **Otherwise recapture**, in this session, at the current merge-base, using a throw-away worktree in
@@ -476,9 +473,8 @@ The gates diff against a baseline, and that baseline must describe the target br
   1. Copy the head branch's eval tool configs (the lint / type / complexity / gitleaks configs the
      work unit's bootstrap created) into the worktree first, so the baseline and the post-fix run
      measure under the **same rules** (`common/eval-framework.md` Section 2.3).
-  2. Install per the manifest's `installCommands` for each root, then run the owning workflow's three
-     baseline runs there — full test suite, D1–D7, the full `tests/e2e/` suite headless (or record
-     its N/A reason).
+  2. Install per the manifest's `installCommands` for each root, then run the owning workflow's two
+     baseline runs there — full test suite and D1–D7.
   3. Write the results over the work unit's baseline evidence files, marking each evidence manifest
      `baseline recaptured by pr-fix round <R> at <BASE_SHA>`.
   4. Remove the worktree (`git worktree remove --force <path>`) on every exit path.
@@ -514,7 +510,6 @@ unit.
 
 | Gate | Story — `dev-implement` | Bug — `bug-fix-implement` | Enhancement — `enhancement-implement` | Loop |
 |---|---|---|---|---|
-| Playwright Readiness (when this round makes or changes UI) | Step 4.3 | Step 4.4 | Step 11.4 | — |
 | Behaviour spec verify (read, never rewrite; Step 7 is the only amendment path) | Step 4.5 | Step 4.5 | Step 11.5 | — |
 | Unit tests + coverage ≥ `unitTestCoverageMin` | Step 6 | Step 6 | Step 13 | SH-LOOP-1 |
 | Gherkin B1 → B2 → B3 in Podman (B3 only if this is the last work unit by PR merge state) | Step 6.1 | Step 6.2 | Step 13.2 | SH-LOOP-7 / 8 |
@@ -522,18 +517,12 @@ unit.
 | Test placement verification | Step 6.3 | — (not in that workflow) | — (not in that workflow) | SH-LOOP-12 |
 | Full regression vs the Step 8 baseline | Step 6.5 | Step 7 | Step 14 | SH-LOOP-3 |
 | Static eval D1–D7 vs the Step 8 baseline | Step 6.6 | Step 7.5 | Step 14.5 | SH-LOOP-4 |
-| Test plan presence + Playwright UI automation | Step 6.7 | Step 7.7 | Step 14.7 | SH-LOOP-11 |
-| Playwright E2E regression — every work unit, UI or not | Step 6.8 | Step 7.8 | Step 14.8 | SH-LOOP-13 |
+| Test plan presence (verify; backfill only if absent) | Step 6.7 | Step 7.7 | Step 14.7 | — |
 
 Round-specific rules:
 - **Evidence** is refreshed in place under the same evidence key (`reports/unit-test-evidence/<key>/`,
   `reports/behavior-test-evidence/<key>/`, `reports/eval-evidence/<key>/`, and so on); the previous
   round's evidence stays in git history. Every evidence manifest records `pr-fix round <R>`.
-- **Playwright UI gate applicability**: if the work unit already has specs in
-  `tests/e2e/<slug>/`, re-execute them `--headed` every round. Invoke the `playwright-implement`
-  skill in WORKFLOW MODE when this round's fix changes UI behaviour a spec covers, when a UI AC was
-  amended at Step 7, or when the fix introduces UI into a work unit that had none. Otherwise part 2 is
-  N/A with the reason recorded.
 - **Every gate runs**, including ones that passed in the original run. "It passed last time" is not
   evidence for this head.
 - **Change, bugfix and Change Request stories** (a `[STORY]` PR whose story has
@@ -700,9 +689,8 @@ Log which variant was shown.
   cycle) are the only other questions, and only when their condition holds. Never ask to approve the
   plan, the review, the push, the PR update or the replies.
 - 🔴 **SINGLE SESSION.** Everything runs in the invoking session. No forks, no subagents, no
-  background or remote agents, no `claude -p`. The only Agent-tool use is Playwright's own
-  Planner/Generator/Healer inside the Playwright UI gate, synchronously. A run inside a fork halts at
-  Step 0.
+  background or remote agents, no `claude -p`, and no Agent-tool use at all. A run inside a fork halts
+  at Step 0.
 - 🔴 **SAME PR, SAME BRANCH, NO HISTORY REWRITE.** Fixes are commits on the PR's head branch. Never
   open a second PR, never rebase a pushed branch, never force-push, never revert CI self-repair's
   commits.

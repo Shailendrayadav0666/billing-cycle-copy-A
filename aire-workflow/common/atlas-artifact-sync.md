@@ -16,7 +16,7 @@ records `Enabled: Yes`.
 
 | Synced | Never synced |
 |---|---|
-| Every text file staged under `spec/` (plans, spec-generation, behavior, test-plans, playwright-specs, `behavior.feature`) | `spec/context-project/**`: human-authored inputs, not framework artifacts |
+| Every text file staged under `spec/` (plans, spec-generation, behavior, test-plans, playwright-specs, `behavior.feature`), including the UI/UX mockup HTML in `spec/plans/ui-ux/` | `spec/context-project/**`: human-authored inputs, not framework artifacts |
 | Every text file staged under `runtime-artifacts/` (`audit.md`, `aire-state.md`, `stories/<unit-key>/*`) | `src/`, the Code Root, `tests/**`, `tests/.evals/**`, `.github/**`, `aire-archives/**` |
 | Every text file staged under `reports/` (all evidence, reviews, security reviews, ticket summaries, PR feedback) | Binary and non-text files (see Section 5) |
 
@@ -163,8 +163,10 @@ runs this pass first, after it has staged its files.
    ```
    Keep the `A`, `M` and `R` (new-path) entries, plus every row still in `### Pending`. Drop `D`
    entries, which are never deleted in Atlas (Section 1). Drop `spec/context-project/**`.
-2. **Text only**. Sync these extensions: `.md .feature .json .yml .yaml .log .txt .xml .csv`. Anything
-   else is skipped and named once in the pass's audit entry. It is not retried.
+2. **Text only**. Sync these extensions: `.md .feature .json .yml .yaml .log .txt .xml .csv`, plus
+   `.html` under `spec/plans/ui-ux/` only (the UI/UX mockups; HTML anywhere else, such as coverage
+   reports under `reports/`, is not synced). Anything else is skipped and named once in the pass's
+   audit entry. It is not retried.
 3. **Order**. Sync every other file first. Sync the state file (`aire-state.md`, or the fragment
    `state.md`) and the audit file last, so they carry this pass's map and log entry.
 4. **Per file**:
@@ -174,7 +176,7 @@ runs this pass first, after it has staged its files.
       - **`.md`**: the file content as-is. Append `## Referenced Paths` with
         ``- High: `<path>` `` unless the file already ends with that section.
       - **Any other text file**: one fenced code block holding the content, tagged with the extension's
-        language (`gherkin`, `json`, `yaml`, `text`, `xml`, `csv`), then the same `## Referenced Paths`
+        language (`gherkin`, `json`, `yaml`, `text`, `xml`, `csv`, `html`), then the same `## Referenced Paths`
         section.
       - The title is the **file name**, so the folder chain carries the path, exactly as on disk.
    3. **Path in the map**: replace that document's body by its id.

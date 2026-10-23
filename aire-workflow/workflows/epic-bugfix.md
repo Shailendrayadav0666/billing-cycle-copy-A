@@ -36,8 +36,8 @@ New or changed behaviour (not a defect) has its own flow: `epic-enhance` (`workf
 separate plan file, a separate ve test-plan PR, a separate archive, and every clarifying question.
 
 **Never cut**: the reproduction proof, the baselines, every gate of `workflows/dev-implement.md` (unit +
-coverage, Gherkin B1/B2/B3, API & contract, test placement, full regression, D1–D7, Playwright UI + E2E
-regression, Code Review with the Security Baseline pass and the blocking J1/J2 judges,
+coverage, Gherkin B1/B2/B3, API & contract, test placement, full regression, D1–D7, test plan
+verification, Code Review with the Security Baseline pass and the blocking J1/J2 judges,
 auto-remediation, CI preflight and attestation), the 3-attempt retry cap, and the rule that a test is
 never weakened to go green.
 
@@ -59,8 +59,7 @@ never weakened to go green.
   them with **Request Changes** at the approval.
 - After approval the run is **fully automatic** through to the PR and the handoff.
 - The sanctioned **halts** stay (they are not questions): the defect cannot be reproduced (Step 4),
-  a blocked affected story (Step 6), SH-4 retry-limit exhaustion, and the Playwright agent-install
-  restart pause.
+  a blocked affected story (Step 6) and SH-4 retry-limit exhaustion.
 
 ---
 
@@ -68,8 +67,8 @@ never weakened to go green.
 
 `workflows/dev-implement.md` Step 1.7 applies unchanged: every step — including the Defect Provenance
 Analyst procedure, which is executed **inline**, never spawned — runs in the session where the keyword
-was typed. The only Agent-tool use is Playwright's own Planner/Generator/Healer inside the Playwright UI
-gate, synchronously. A run inside a fork or subagent HALTS at Step 0.
+was typed. There is no permitted Agent-tool use, and no Playwright automation runs (exactly as in
+`workflows/dev-implement.md`). A run inside a fork or subagent HALTS at Step 0.
 
 ---
 
@@ -85,7 +84,7 @@ Resolve `aire-workflow/` and load:
   reuses (JIRA direction rules, ADO/GITHUB/LOCAL fallbacks)
 - `workflows/epic-enhance.md` — its Step 4 routing table, Step 11 gate semantics and Step 12 Test Impact
   Reconciliation are executed **by reference**
-- `workflows/dev-implement.md` **in full** — Step 1.5, Steps 4.5–6.8 and Sections A–F by reference; its
+- `workflows/dev-implement.md` **in full** — Step 1.5, Steps 4.5–6.7 and Sections A–F by reference; its
   Self-Healing Retry Policy and Retry-Limit Report bind this workflow
 - `implementation/code-generation.md` (Guardrail), `workflows/code-review.md` +
   `implementation/code-review.md`, `workflows/remediate.md` + `implementation/remediate.md`
@@ -380,8 +379,8 @@ On the refreshed epic-branch checkout, nothing committed:
 ## Step 11 — Branch, baselines, reproduction proof, spec edits
 
 1. **Branch + baselines**: `workflows/dev-implement.md` **Step 1.5** for Story <N.M> — branch
-   `story/<BUG-ID>-<N.M>-<kebab-title>` from the refreshed epic branch, then the full-suite, D1–D7 and
-   Playwright E2E baselines, **before any edit**.
+   `story/<BUG-ID>-<N.M>-<kebab-title>` from the refreshed epic branch, then the full-suite and D1–D7
+   baselines, **before any edit**.
 2. **Reproduction proof on the branch**: re-create the Step 4 reproduction test (and the `@bug` scenario
    with its step definitions) and run it on the baseline code. It must fail for the same documented
    reason; save the output to `reports/unit-test-evidence/story-<N.M>/reproduction-baseline.log`. If it
@@ -402,8 +401,7 @@ On the refreshed epic-branch checkout, nothing committed:
 
 ## Step 12 — Fix
 
-Execute `workflows/dev-implement.md` from **Step 4.3** (Playwright Readiness — frontend plans only) and
-**Step 4.5** through **Part 2 generation**, with document
+Execute `workflows/dev-implement.md` from **Step 4.5** through **Part 2 generation**, with document
 Section 8 as the plan (it satisfies Step 4.1; checkboxes marked there) and this order: the fix → the
 reproduction test and the missed-case tests → any Section 7c authorised update.
 
@@ -414,7 +412,7 @@ verified, announced) and is appended to `## Defect Provenance Log`.
 
 ## Step 13 — The COMPLETE gate chain
 
-`workflows/dev-implement.md` **Steps 6 through 6.8** for Story <N.M>, with `workflows/epic-enhance.md`
+`workflows/dev-implement.md` **Steps 6 through 6.7** for Story <N.M>, with `workflows/epic-enhance.md`
 **Step 11**'s semantics for authorised test changes, plus: **the reproduction test and the `@bug`
 scenario must pass**. Every gate keeps its SH-LOOP and 3-attempt budget; exhaustion → SH-4 HALT.
 

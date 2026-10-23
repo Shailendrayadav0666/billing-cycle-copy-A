@@ -498,7 +498,8 @@ jobs:
           dotnet-version: "${{ needs.setup.outputs.dotnet_version || '8.0' }}"
 
       # 🔴 TRUST GATE, not first execution — see the single-job template's own long-form comment for the
-      #    full rationale (implementation/code-generation.md Step 11d). `has_e2e_tests` already proved
+      #    full rationale (common/ci-pipeline-generation.md Section 3.0f — the specs come only from the
+      #    standalone /playwright-implement; no implement workflow writes them). `has_e2e_tests` already proved
       #    this story's own tests/e2e/<key>/ has content, so unlike the old `ci.playwright.enabled`
       #    check this job's `if:` needs no second signal — startCommand/readinessUrl still come from
       #    config.json because the DIRECTORY fact says the stage should run, not HOW to run it.
@@ -506,7 +507,7 @@ jobs:
       #    assert on otherwise. `startCommand`/`readinessUrl` bring up whatever the frontend needs;
       #    `backendStartCommand`/`backendReadinessUrl` are the SAME two facts for a genuinely SEPARATE
       #    backend process, resolved the same way (never invented — common/ci-pipeline-generation.md
-      #    Section 3.0f) only when the local gate needed two independent processes rather than one
+      #    Section 3.0f) only when the standalone run needed two independent processes rather than one
       #    combined start script (a monolith, docker-compose, or a monorepo dev task already covers
       #    both under a single `startCommand`, in which case the backend fields stay unset and this
       #    step behaves exactly as it always did).
