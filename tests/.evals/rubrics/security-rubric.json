@@ -1,0 +1,66 @@
+{
+  "rubricName": "Security — OWASP Top 10:2025 — Billing-Cycle (StreamPlex)",
+  "rubricVersion": "1.0.0",
+  "derivedFrom": [
+    "OWASP Top 10:2025",
+    "spec/plans/architecture.md"
+  ],
+  "evalCriteria": [
+    {
+      "id": "SEC-01",
+      "owasp": "A01:2025",
+      "metric": "Broken access control",
+      "weight": 0.25,
+      "prompt": "Review every route in the diff that reads or changes user, billing, preview, upgrade or session data. Score 0 if any changed route chooses whose data to read or change from a request-supplied email, ID or other client field instead of the server-side session, returns another user's data (including any fallback to a default user), or lets an unauthenticated request reach a protected handler. Cite the file and line.",
+      "source": "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/"
+    },
+    {
+      "id": "SEC-02",
+      "owasp": "A07:2025",
+      "metric": "Authentication failures",
+      "weight": 0.25,
+      "prompt": "Review session issuance, validation, expiry and logout in the diff. Score 0 if a session token is derived from user data (email, ID, timestamp) or generated without the `secrets` module, if a token is accepted without checking it exists and is unexpired, if an expired or logged-out token is still accepted, if a login reuses an existing session token, or if a token is placed in a URL. Cite the file and line.",
+      "source": "https://owasp.org/Top10/2025/A07_2025-Authentication_Failures/"
+    },
+    {
+      "id": "SEC-03",
+      "owasp": "A02:2025",
+      "metric": "Security misconfiguration",
+      "weight": 0.15,
+      "prompt": "Review CORS, middleware and configuration changes in the diff. Score 0 if CORS allows `*` or reflects arbitrary origins, enables credentials, or if debug mode, permissive defaults or hardcoded secrets/credentials are introduced. Cite the file and line.",
+      "source": "https://owasp.org/Top10/2025/A02_2025-Security_Misconfiguration/"
+    },
+    {
+      "id": "SEC-04",
+      "owasp": "A06:2025",
+      "metric": "Insecure design",
+      "weight": 0.1,
+      "prompt": "Review the upgrade and proration logic in the diff. Score 0 if the charge shown or applied can be supplied or altered by the client, if the upgrade can be applied to a user who is already Premium, if `renew_at` can be changed by the upgrade, or if the charge can exceed the full price difference or go negative. Cite the file and line.",
+      "source": "https://owasp.org/Top10/2025/A06_2025-Insecure_Design/"
+    },
+    {
+      "id": "SEC-05",
+      "owasp": "A05:2025",
+      "metric": "Injection",
+      "weight": 0.05,
+      "prompt": "Review every changed path where request input reaches HTML rendering, logging or string formatting. Score 0 if user input is rendered as raw HTML (for example via dangerouslySetInnerHTML), passed to eval/exec or a shell, or written to logs without being a fixed-format value. Cite the file and line.",
+      "source": "https://owasp.org/Top10/2025/A05_2025-Injection/"
+    },
+    {
+      "id": "SEC-06",
+      "owasp": "A09:2025",
+      "metric": "Security logging and alerting failures",
+      "weight": 0.1,
+      "prompt": "Review changed log statements. Score 0 if any log line includes a session token, password or email address, or serialises a whole user or request object; also score 0 if a changed upgrade or logout handler performs its state change without an INFO log identifying the event by user ID. Cite the file and line.",
+      "source": "https://owasp.org/Top10/2025/A09_2025-Security_Logging_and_Alerting_Failures/"
+    },
+    {
+      "id": "SEC-07",
+      "owasp": "A10:2025",
+      "metric": "Mishandling of exceptional conditions",
+      "weight": 0.1,
+      "prompt": "Review error handling in the diff. Score 0 if an error response includes a stack trace, exception message text or internal state, if an authentication error path fails open (continues as authenticated), or if a frontend error path swallows a failure without showing a message or signing out on 401. Cite the file and line.",
+      "source": "https://owasp.org/Top10/2025/A10_2025-Mishandling_of_Exceptional_Conditions/"
+    }
+  ]
+}

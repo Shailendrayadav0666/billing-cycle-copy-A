@@ -1,0 +1,51 @@
+{
+  "rubricName": "Architectural Alignment — Billing-Cycle (StreamPlex)",
+  "rubricVersion": "1.0.0",
+  "derivedFrom": [
+    "spec/plans/architecture.md#10-verifiable-constraints"
+  ],
+  "evalCriteria": [
+    {
+      "id": "ARCH-01",
+      "metric": "Identity comes only from the server-side session",
+      "weight": 0.25,
+      "prompt": "In the diff, every route handler for `/api/users/me`, `/api/billing*` and `/api/auth/logout` must take the session dependency and must not read an `email` query parameter or body field to choose whose data is read or changed. Score 0 if any changed protected handler selects a user from request input or lacks the dependency.",
+      "source": "spec/plans/functional-design.md (BR-6, Section 4)"
+    },
+    {
+      "id": "ARCH-02",
+      "metric": "Money is computed once, on the server, with Decimal",
+      "weight": 0.2,
+      "prompt": "Score 0 if the diff computes a charge with `float` arithmetic or Python `round()`, duplicates the formula in another backend module, or computes the charge or days remaining in frontend code (frontend may only format the server value).",
+      "source": "spec/plans/functional-design.md (BR-1, BR-2), requirements.md REQ-NF-06"
+    },
+    {
+      "id": "ARCH-03",
+      "metric": "Plan data is defined once in the catalogue",
+      "weight": 0.15,
+      "prompt": "Score 0 if the diff adds a literal plan feature block, price label or monthly price for Standard or Premium anywhere outside `plans.py`, or assigns a catalogue entry to a user without copying it.",
+      "source": "spec/plans/functional-design.md (Section 2.1), requirements.md REQ-F-05"
+    },
+    {
+      "id": "ARCH-04",
+      "metric": "Frontend API calls go through authFetch",
+      "weight": 0.15,
+      "prompt": "Score 0 if a changed component or context calls `fetch` directly for a protected endpoint, builds an `Authorization` header itself, or puts the token in a URL query string.",
+      "source": "spec/plans/functional-design.md (Section 1.2, 5.4)"
+    },
+    {
+      "id": "ARCH-05",
+      "metric": "Pure domain helpers stay pure",
+      "weight": 0.1,
+      "prompt": "Score 0 if the diff adds a FastAPI/Starlette import, a reference to the global stores or session store, or a direct `date.today()`/`datetime.now()` call inside `proration.prorated_charge`/`days_remaining` without an injectable date parameter.",
+      "source": "spec/plans/functional-design.md (Section 1.1, BR-1)"
+    },
+    {
+      "id": "ARCH-06",
+      "metric": "No secrets or personal data in logs or error responses",
+      "weight": 0.15,
+      "prompt": "Score 0 if any changed log call or `HTTPException`/error payload includes a token, password, email or a whole user/request object, or if an error response includes a stack trace or exception text.",
+      "source": "spec/plans/functional-design.md (BR-4, BR-5, Section 6), architecture.md Section 6"
+    }
+  ]
+}

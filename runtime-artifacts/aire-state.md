@@ -3,7 +3,7 @@
 ## Project Information
 - **Project Type**: Brownfield
 - **Start Date**: 2026-10-23T07:53:23Z
-- **Current Stage**: PLANNING - Workflow Planning
+- **Current Stage**: Design complete — awaiting dev-implement
 - **Workflow Type**: epic
 - **AIRE Framework Version**: 1.0
 
@@ -82,6 +82,25 @@
 - target_story_count: 10
 - breakdown_approach: walking skeleton + increments (user direction)
 
+## CI/CD Configuration
+- Enabled: No
+- Source: user opt-out
+
+## Architecture
+- **Document**: spec/plans/architecture.md v1.0.0
+- **Rubrics**: tests/.evals/rubrics/architecture-rubric.json v1.0.0 (6 criteria), tests/.evals/rubrics/security-rubric.json v1.0.0 (7 criteria)
+- **Eval config**: tests/.evals/config.json (created this cycle)
+
+## Behaviour Specs & Test Plans
+- **Work units covered**: 10
+- **Behaviour contracts**: spec/behavior/ — 10 file(s), 47 scenarios (+ spec/behavior.feature, 3 cross-story journeys)
+- **Manual test plans**: spec/test-plans/ — 10 folder(s), 129 test cases
+- **AC coverage**: 39/39 (scenarios) · 39/39 (test cases)
+- **Approved**: 2026-10-23T08:43:33Z
+
+## Requirements Coverage (post-design)
+- Requirements coverage verified post-design: 23/23 REQ-IDs — 2026-10-23T08:43:33Z (functional-design.md and architecture.md reconciled; no story AC contradicted by the design, no reconciliation needed)
+
 ## Story Tracker
 | Story | Title | Requires | Tracker ID | Status | PR | Merged | Start | End | Recorded |
 |-------|-------|----------|------------|--------|----|--------|-------|-----|----------|
@@ -135,5 +154,13 @@ Inferred edges:
 - [x] Requirements Analysis — Standard depth; spec/plans/requirements.md v1 approved (16 REQ-F, 7 REQ-NF)
 - [x] User Stories — 10 stories approved at GATE 1; LOCAL tracker (no push)
 - [x] Dependency Graph — spec/plans/dependency-graph.yml (1.1 seed; 1.2-1.10 require 1.1)
-- [ ] Workflow Planning
-- [ ] Application Design
+- [x] Workflow Planning — spec/plans/executions.md (auto-approved)
+- [-] Application Design — SKIP (work inside existing components; contracts fixed in requirements.md)
+
+### IMPLEMENTATION PHASE
+- [x] Functional Design — spec/plans/functional-design.md v1 approved
+- [-] NFR Requirements — SKIP (stack fixed; NFRs specified in requirements.md)
+- [-] NFR Design — SKIP (NFR Requirements skipped; patterns covered in Functional Design)
+- [-] Infrastructure Design — SKIP (no infrastructure change)
+- [x] Behaviour Specs & Test Plans — 10/10 stories, approved
+- [ ] Code Generation — EXECUTE (per story via dev-implement)
